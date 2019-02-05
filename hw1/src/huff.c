@@ -34,6 +34,38 @@
  * YOU WILL GET A ZERO!
  */
 
+
+int string_to_int(char *s)
+{
+    int num = 0;
+    while(*s != '\0')
+    {
+        if(*s >= '0' && *s <= '9')
+        {
+            //shifts digits to the left by one decimal place and add the current digit
+            num = num *10 + *s - '0';
+        }
+        else
+            return 0;
+        ++s;
+    }
+    return num;
+}
+int compare_string(char *s1,char *s2)
+{
+    while(*s1 != '\0' || *s1 != '\0')
+    {
+        if(*s1 == *s2)
+        {
+            s1++;
+            s2++;
+        }
+        else
+            return 0;
+    }
+    return 1;
+}
+
 /**
  * @brief Emits a description of the Huffman tree used to compress the current block.
  * @details This function emits, to the standard output, a description of the
@@ -104,9 +136,36 @@ int decompress_block() {
  *
  * @return 0 if compression completes without error, 1 if an error occurs.
  */
-int compress() {
-    // To be implemented.
+int compress()
+{
+    int i = 0;
+    int c;
+    //int blocksize = 2048;
+/*
+    //no input
+    if( (c = getchar()) == EOF)
+        return 1;
+    do
+    {
+        current_block[i] = c
+        if((i+1) == blocksize)
+        {
+            build_huff();
+            i = 0; //reset the counter
+        }
+        i++;
+    }while( (c = getchar()) != EOF);
+
+    // partial block read in due to end of input
+    // set the end of the block NULL to indicate where to stop reading input
+    if(i != blocksize)
+    {
+        current_block[i] = NULL;
+        build_huff();
+    }
+    */
     return 1;
+
 }
 
 /**
@@ -141,6 +200,92 @@ int decompress() {
  * the selected options.
  */
 int validargs(int argc, char **argv)
+{
+    if(argc == 1)
+    {
+          // no flags are provided display usage and return with an EXIT_FALIURE
+         return 1;
+    }
+    else
+    {
+        char *first_arg = *++argv;
+
+        if(compare_string(first_arg,"-h"))
+        {
+            //least significant bit is 1
+            global_options =0x1;
+            return 0;
+        }
+        else if(compare_string(first_arg,"-c"))
+        {
+            //perform data compression
+            if(argc == 2)
+            {
+                //second-least significant bit is 1
+                global_options =0xffff0002;
+                //printf("%lu %s\n",(long unsigned)global_options,"executed2");
+                return 0;
+            }
+            else if(argc == 4)
+            {
+                char *second_arg = *++argv;
+
+                if(compare_string(second_arg,"-b"))
+                {
+                    char *third_arg = *++argv;
+                    int block_num = string_to_int(third_arg)-1;
+
+                    if(block_num+1 <= MAX_BLOCK_SIZE && block_num+1 >= MIN_BLOCK_SIZE)
+                    {
+                        //second least significant bit is blocksize -1 in the 16
+                        //most significant bit of global_options
+                        //global_options = 0xffff0004;
+                        //printf("%d\n",block_num);
+                        block_num = block_num << 16;
+                        global_options = 0x2;
+                        global_options = block_num | global_options;
+                        //printf("%d\n",block_num);
+                        //printf("%lu %s\n",(long unsigned)global_options,"executed3");
+                        return 0;
+                    }
+                    else
+                    {
+                        return 1;
+                    }
+                }
+                else
+                {
+                    return 1;
+                }
+            }
+            else
+            {
+                return 1;
+            }
+
+        }
+        else if(compare_string(first_arg,"-d"))
+        {
+            if(argc != 2)
+            {
+                return 1; //invalid additional arguments
+            }
+            else
+            {
+                //third-most significant bit is 1 for decompression
+                global_options =  0xffff0004;
+                return 0; //valid
+            }
+        }
+        else
+        {
+            return 1;
+        }
+    }
+}
+
+
+int build_huff()
 {
     return 1;
 }

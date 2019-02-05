@@ -19,12 +19,15 @@
 int main(int argc, char **argv)
 {
     int ret;
-    if(validargs(argc, argv))
+    if(validargs(argc, argv) == 1)
+    {
         USAGE(*argv, EXIT_FAILURE);
+    }
     debug("Options: 0x%x", global_options);
-    if(global_options & 1)
+    if((global_options & 1) == 1)
+    {
         USAGE(*argv, EXIT_SUCCESS);
-
+    }
     return EXIT_SUCCESS;
 }
 
