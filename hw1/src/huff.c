@@ -70,15 +70,6 @@ int build_huff()
 {
     unsigned char *input_block = current_block;
 
-/*
-    while(*input_block != '\0')
-    {
-        printf("%c",*input_block);
-        input_block++;
-    }
-
-    printf("\n");
-    */
 
     input_block = current_block;
 
@@ -94,10 +85,6 @@ int build_huff()
          NODE *nodes2_array = nodes;
         for(i = 0 ;i < num_nodes;i++)
         {
-            //NODE single_node = *nodes2_array;
-            //printf("%c %s\n",(unsigned char)nodes2_array->symbol," is the symbol");
-            //printf("%d %s\n",nodes2_array->weight," is the weight");
-           // printf("%c %s\n",*input_block, " is the input block");
             if((unsigned char)nodes2_array->symbol == *input_block)
             {
                 nodes2_array->weight = nodes2_array->weight + 1;
@@ -127,17 +114,7 @@ int build_huff()
     //testing if leaf nodes created
 
 
-    //printf("%d\n",num_nodes);
-    NODE *nodes_array = nodes;
-    for(i = 0 ;i < num_nodes;i++)
-    {
-        printf("%c %d\n",(unsigned char)nodes_array->symbol,nodes_array->weight);
-        nodes_array++;
-    }
-
-
     //leaf nodes are now in the array, now remove the 2 min nodes and replace with parent - the sum of the two removed nodes
-    nodes_ptr = nodes;
     int num_leaf = num_nodes;
     num_nodes = (2*num_nodes)-1;
 
@@ -146,6 +123,8 @@ int build_huff()
 
         NODE *min_node;
         NODE *min_node2;
+
+         nodes_ptr = nodes;
 
         for(i = 0; i < num_leaf && num_leaf != 1; i++)
         {
@@ -179,37 +158,127 @@ int build_huff()
             }
             nodes_ptr++;
         }
-        printf("%d %s\n",min_node->weight, "is th min weight");
-        printf("%d %s\n",min_node2->weight, "is th second min weight");
-        //NODE *parent;
-        //parent->weight = (min_node->weight) + (min_node2->weight);
+
+
+        NODE min;
+        min.symbol = min_node->symbol;
+        min.weight = min_node->weight;
+        //min.parent = min_node->parent;
+        min.left = min_node->left;
+        min.right = min_node->right;
+        NODE min2;
+        min2.symbol = min_node2->symbol;
+        min2.weight = min_node2->weight;
+        //min2.parent = min_node2->parent;
+        min2.left = min_node2->left;
+        min2.right = min_node2->right;
+
+
+        nodes_ptr = nodes;
+        NODE *next = ++nodes_ptr;
+        nodes_ptr = nodes;
+
+        int found = 0;
+
+        for(i = 0; i < num_leaf;i++)
+        {
+
+            if(nodes_ptr->symbol == min.symbol || found == 1)
+            {
+                nodes_ptr->weight = next->weight;
+                nodes_ptr->symbol = next->symbol;
+                nodes_ptr->left = next->left;
+                nodes_ptr->right = next->right;
+                nodes_ptr->parent = next->parent;
+                found = 1;
+            }
+            nodes_ptr++;
+            next++;
+        }
+
+
+        nodes_ptr = nodes;
+        next = ++nodes_ptr;
+        nodes_ptr = nodes;
+
+        found = 0;
+        for(i = 0; i < num_leaf-1;i++)
+        {
+
+            if(nodes_ptr->symbol == min2.symbol || found == 1)
+            {
+                nodes_ptr->weight = next->weight;
+                nodes_ptr->symbol = next->symbol;
+                nodes_ptr->left = next->left;
+                nodes_ptr->right = next->right;
+                nodes_ptr->parent = next->parent;
+                found = 1;
+            }
+            nodes_ptr++;
+            next++;
+        }
+
+
         nodes_ptr = nodes;
         for(i = 0; i < 2*num_leaf-1;i++)
         {
+            NODE *parent_index;
             if(i == 2*num_leaf-3)
             {
-                nodes_ptr = min_node2;
+                //nodes_ptr = min_node2;
+                nodes_ptr->weight = min2.weight;
+                nodes_ptr->symbol = min2.symbol;
+                nodes_ptr->parent = parent_index;
+                nodes_ptr->left = min2.left;
+                nodes_ptr->right = min2.right;
+                //update parent left and right pointers
+                parent_index->right = nodes_ptr;
             }
             else if(i == 2*num_leaf-2)
             {
-                nodes_ptr = min_node;
+                //nodes_ptr = min_node;
+                nodes_ptr->weight = min.weight;
+                nodes_ptr->symbol = min.symbol;
+                nodes_ptr->left = min.left;
+                nodes_ptr->right = min.right;
+                nodes_ptr->parent = parent_index;
+                //update parent left and right pointers
+                parent_index->left = nodes_ptr;
             }
             else if(i == num_leaf-2)
             {
-                /*
-                NODE *parent = nodes_ptr;
-                parent->weight = min_node->weight + min_node2->weight;
-                parent->symbol = 'c';
-                */
                 nodes_ptr->symbol = 500;
-                nodes_ptr->weight = min_node->weight + min_node2->weight;
+                nodes_ptr->weight = min2.weight + min.weight;
+                nodes_ptr->parent = NULL;
+
+                parent_index = nodes_ptr;
 
             }
             nodes_ptr++;
         }
-        num_leaf = num_leaf-1;
 
+        num_leaf = num_leaf-1;
     }
+
+    NODE *nodes_array = nodes;
+    for(i = 0 ;i < num_nodes;i++)
+    {
+        printf("%c %d %s\n",(unsigned char)nodes_array->symbol,nodes_array->weight, "is the current node");
+        if(nodes_array->left != NULL)
+        {
+            NODE *p = nodes_array->left;
+            printf("%c %d %s\n",(unsigned char)p->symbol,p->weight,"is the left child");
+        }
+        if(nodes_array->right != NULL)
+        {
+            NODE *p = nodes_array->right;
+            printf("%c %d %s\n\n",(unsigned char)p->symbol,p->weight,"is the right child");
+        //printf("%d\n",nodes_array->symbol);
+        }
+        nodes_array++;
+    }
+    printf("\n");
+
 
 
     return 1;
