@@ -66,6 +66,155 @@ int compare_string(char *s1,char *s2)
     return 1;
 }
 
+int build_huff()
+{
+    unsigned char *input_block = current_block;
+
+/*
+    while(*input_block != '\0')
+    {
+        printf("%c",*input_block);
+        input_block++;
+    }
+
+    printf("\n");
+    */
+
+    input_block = current_block;
+
+
+    NODE *nodes_ptr = nodes;
+   // printf("%p\n",nodes_ptr);
+    int i;
+    int found = 0;
+    num_nodes = 0;
+
+    while(*input_block != '\0')
+    {
+         NODE *nodes2_array = nodes;
+        for(i = 0 ;i < num_nodes;i++)
+        {
+            //NODE single_node = *nodes2_array;
+            //printf("%c %s\n",(unsigned char)nodes2_array->symbol," is the symbol");
+            //printf("%d %s\n",nodes2_array->weight," is the weight");
+           // printf("%c %s\n",*input_block, " is the input block");
+            if((unsigned char)nodes2_array->symbol == *input_block)
+            {
+                nodes2_array->weight = nodes2_array->weight + 1;
+                //printf("executed");
+                found = 1;
+            }
+            nodes2_array++;
+        }
+        //printf("%d\n",found);
+
+        if(found != 1)
+        {
+            nodes_ptr->symbol = (short)*input_block;
+            nodes_ptr->weight = 1;
+            nodes_ptr->parent = NULL;
+            nodes_ptr->right = NULL;
+            nodes_ptr->left = NULL;
+            //printf("%c %d\n",(unsigned char)nodes_ptr->symbol,nodes_ptr->weight);
+            num_nodes = num_nodes + 1;
+
+            nodes_ptr++;
+
+        }
+        input_block++;
+        found = 0;
+    }
+    //testing if leaf nodes created
+
+
+    //printf("%d\n",num_nodes);
+    NODE *nodes_array = nodes;
+    for(i = 0 ;i < num_nodes;i++)
+    {
+        printf("%c %d\n",(unsigned char)nodes_array->symbol,nodes_array->weight);
+        nodes_array++;
+    }
+
+
+    //leaf nodes are now in the array, now remove the 2 min nodes and replace with parent - the sum of the two removed nodes
+    nodes_ptr = nodes;
+    int num_leaf = num_nodes;
+    num_nodes = (2*num_nodes)-1;
+
+    while(num_leaf != 1)
+    {
+
+        NODE *min_node;
+        NODE *min_node2;
+
+        for(i = 0; i < num_leaf && num_leaf != 1; i++)
+        {
+            if(i == 0)
+            {
+                min_node = nodes;
+            }
+            else if(i == 1)
+            {
+                if(min_node->weight > nodes_ptr->weight)
+                {
+                    min_node2 = min_node;
+                    min_node = nodes_ptr;
+                }
+                else
+                {
+                    min_node2 = nodes_ptr;
+                }
+            }
+            else
+            {
+                if(min_node->weight > nodes_ptr->weight && min_node2->weight > nodes_ptr->weight)
+                {
+                    min_node = min_node2;
+                    min_node = nodes_ptr;
+                }
+                else if(min_node2->weight > nodes_ptr->weight)
+                {
+                    min_node2 = nodes_ptr;
+                }
+            }
+            nodes_ptr++;
+        }
+        printf("%d %s\n",min_node->weight, "is th min weight");
+        printf("%d %s\n",min_node2->weight, "is th second min weight");
+        //NODE *parent;
+        //parent->weight = (min_node->weight) + (min_node2->weight);
+        nodes_ptr = nodes;
+        for(i = 0; i < 2*num_leaf-1;i++)
+        {
+            if(i == 2*num_leaf-3)
+            {
+                nodes_ptr = min_node2;
+            }
+            else if(i == 2*num_leaf-2)
+            {
+                nodes_ptr = min_node;
+            }
+            else if(i == num_leaf-2)
+            {
+                /*
+                NODE *parent = nodes_ptr;
+                parent->weight = min_node->weight + min_node2->weight;
+                parent->symbol = 'c';
+                */
+                nodes_ptr->symbol = 500;
+                nodes_ptr->weight = min_node->weight + min_node2->weight;
+
+            }
+            nodes_ptr++;
+        }
+        num_leaf = num_leaf-1;
+
+    }
+
+
+    return 1;
+}
+
 /**
  * @brief Emits a description of the Huffman tree used to compress the current block.
  * @details This function emits, to the standard output, a description of the
@@ -140,31 +289,57 @@ int compress()
 {
     int i = 0;
     int c;
-    //int blocksize = 2048;
-/*
+    unsigned char *input_block = current_block;
+    //printf("%d %s\n",global_options, "is the global_options");
+    unsigned int blocksize = global_options - 0x2;
+    //printf("%d %s\n",blocksize, "is the blocksize");
+    blocksize = (blocksize >> 16) + 1;
+    //printf("%d %s\n",blocksize, "is the blocksize");
+
+
     //no input
     if( (c = getchar()) == EOF)
         return 1;
     do
     {
-        current_block[i] = c
+        *input_block = (unsigned char)c;
+        //printf("%c\n",(unsigned char)c);
         if((i+1) == blocksize)
         {
+            //printf("%d %s\n",blocksize, "is the max");
             build_huff();
             i = 0; //reset the counter
+            input_block = current_block;
         }
-        i++;
+        else
+        {
+            i++;
+            input_block++;
+        }
     }while( (c = getchar()) != EOF);
 
     // partial block read in due to end of input
     // set the end of the block NULL to indicate where to stop reading input
-    if(i != blocksize)
+    if(i != blocksize && i != 0)
     {
-        current_block[i] = NULL;
+        //printf("%d %d\n",blocksize,i);
+        *input_block = '\0';
         build_huff();
     }
+
+    // testing if input was processed correctly from stdin
+    //input_block = current_block;
+    //printf("executed\n");
+    /*
+    while(*input_block != '\0')
+    {
+        printf("%c",*input_block);
+        input_block++;
+    }
+    printf("\n");
     */
-    return 1;
+
+    return 0;
 
 }
 
@@ -285,7 +460,4 @@ int validargs(int argc, char **argv)
 }
 
 
-int build_huff()
-{
-    return 1;
-}
+

@@ -19,16 +19,33 @@
 int main(int argc, char **argv)
 {
     int ret;
-    if(validargs(argc, argv) == 1)
+    // if returns 0 then doesn't execute
+    if(validargs(argc, argv))
     {
         USAGE(*argv, EXIT_FAILURE);
     }
     debug("Options: 0x%x", global_options);
-    if((global_options & 1) == 1)
+
+    // h flag provided
+    if((global_options & 1))
     {
         USAGE(*argv, EXIT_SUCCESS);
+        //printf("%s\n","executed");
     }
-    return EXIT_SUCCESS;
+    // c flag provided
+    else if(global_options & 0x2)
+    {
+        compress();
+        //printf("%s\n","executed");
+        //USAGE(*argv, EXIT_SUCCESS);
+    }
+    // d flag provided
+    else if(global_options & 0x4)
+    {
+
+    }
+    // printf("%s\n","executed");
+     return EXIT_SUCCESS;
 }
 
 /*
