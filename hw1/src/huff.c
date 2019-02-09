@@ -111,6 +111,13 @@ int build_huff()
         input_block++;
         found = 0;
     }
+    // adding the end block symbol
+    nodes_ptr->symbol = 400;
+    nodes_ptr->weight = 0;
+    nodes_ptr->parent = NULL;
+    nodes_ptr->right = NULL;
+    nodes_ptr->left = NULL;
+    num_nodes = num_nodes + 1;
     //testing if leaf nodes created
 
 
@@ -148,7 +155,7 @@ int build_huff()
             {
                 if(min_node->weight > nodes_ptr->weight && min_node2->weight > nodes_ptr->weight)
                 {
-                    min_node = min_node2;
+                    min_node2 = min_node;
                     min_node = nodes_ptr;
                 }
                 else if(min_node2->weight > nodes_ptr->weight)
@@ -261,21 +268,47 @@ int build_huff()
     }
 
     NODE *nodes_array = nodes;
+    NODE **node_symbol = node_for_symbol;
     for(i = 0 ;i < num_nodes;i++)
     {
-        printf("%c %d %s\n",(unsigned char)nodes_array->symbol,nodes_array->weight, "is the current node");
+        //printf("%c %d %s\n",(unsigned char)nodes_array->symbol,nodes_array->weight, "is the current node");
+
+        if(nodes_array->left == NULL && nodes_array->right == NULL)
+        {
+            //leaf node - assign pointer!
+            *node_symbol++ = nodes_array;
+            //node_symbol++;
+        }
+
         if(nodes_array->left != NULL)
         {
             NODE *p = nodes_array->left;
-            printf("%c %d %s\n",(unsigned char)p->symbol,p->weight,"is the left child");
+            p->parent = nodes_array;
+            //printf("%c %d %s\n",(unsigned char)p->symbol,p->weight,"is the left child");
         }
         if(nodes_array->right != NULL)
         {
             NODE *p = nodes_array->right;
-            printf("%c %d %s\n\n",(unsigned char)p->symbol,p->weight,"is the right child");
+            p->parent = nodes_array;
+            //printf("%c %d %s\n\n",(unsigned char)p->symbol,p->weight,"is the right child");
         //printf("%d\n",nodes_array->symbol);
         }
+/*
+        if(nodes_array->parent != NULL)
+        {
+            NODE *p = nodes_array->parent;
+            //printf("%c %d %s\n\n",(unsigned char)p->symbol,p->weight,"is the parent");
+        }
+        */
         nodes_array++;
+    }
+    num_leaf = (num_nodes+1)/2;
+    node_symbol = node_for_symbol;
+    for(i = 0; i <num_leaf;i++)
+    {
+        NODE *node_p = *node_symbol;
+        printf("%c %d %s\n\n",node_p->symbol,node_p->weight," is the leaf node");
+        node_symbol++;
     }
     printf("\n");
 
