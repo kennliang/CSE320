@@ -34,7 +34,10 @@
  * YOU WILL GET A ZERO!
  */
 
-
+/**
+ *  string_to_int --- converts a string into an int and checks if all chars
+ *  of the string are digits (0-9). Returns 0 if strings are not digits.
+ */
 int string_to_int(char *s)
 {
     int num = 0;
@@ -51,6 +54,11 @@ int string_to_int(char *s)
     }
     return num;
 }
+
+/**
+ *  compare_string --- a simple string comparison function that checks if two strings
+ *  exactly matches. Returns 0 if strings do not match. 1 if strings do match
+ */
 int compare_string(char *s1,char *s2)
 {
     while(*s1 != '\0' || *s1 != '\0')
@@ -66,35 +74,38 @@ int compare_string(char *s1,char *s2)
     return 1;
 }
 
-int build_huff()
+/**
+ *  proces_block --- a linear traversal through current_block,an array of unsigned chars
+ *  containing the input received from standard input, creating leaf nodes for
+ *  every unique symbol and storing the total number of times each symbol appears
+ *  in the current_block. Once the current_block is processed, a new leaf node is created
+ *  to represent the end of a block with weight 0.
+ *
+ */
+
+void process_block()
 {
     unsigned char *input_block = current_block;
-
-
-    input_block = current_block;
-
-
     NODE *nodes_ptr = nodes;
-   // printf("%p\n",nodes_ptr);
     int i;
     int found = 0;
     num_nodes = 0;
 
+    // processing the entire block
     while(*input_block != '\0')
     {
          NODE *nodes2_array = nodes;
         for(i = 0 ;i < num_nodes;i++)
         {
+            // the symbol already exists, increase the count
             if((unsigned char)nodes2_array->symbol == *input_block)
             {
                 nodes2_array->weight = nodes2_array->weight + 1;
-                //printf("executed");
                 found = 1;
             }
             nodes2_array++;
         }
-        //printf("%d\n",found);
-
+        // a new symbol, create a leaf node
         if(found != 1)
         {
             nodes_ptr->symbol = (short)*input_block;
@@ -102,11 +113,9 @@ int build_huff()
             nodes_ptr->parent = NULL;
             nodes_ptr->right = NULL;
             nodes_ptr->left = NULL;
-            //printf("%c %d\n",(unsigned char)nodes_ptr->symbol,nodes_ptr->weight);
+
             num_nodes = num_nodes + 1;
-
             nodes_ptr++;
-
         }
         input_block++;
         found = 0;
@@ -118,192 +127,217 @@ int build_huff()
     nodes_ptr->right = NULL;
     nodes_ptr->left = NULL;
     num_nodes = num_nodes + 1;
-    //testing if leaf nodes created
+}
 
+/**
+ *  find_min --- finds the two minimum node weights within the low end of the nodes array
+ *  The information of the minimum nodes are stored for later use using a pass by reference.
+ *
+ *  num_leaf - the number of low end nodes remaining in the nodes array
+ */
+void find_min(NODE *min,NODE *min2,int num_leaf)
+{
+    NODE *nodes_ptr = nodes;
+    int i;
+    NODE *min_node;
+    NODE *min_node2;
 
-    //leaf nodes are now in the array, now remove the 2 min nodes and replace with parent - the sum of the two removed nodes
-    int num_leaf = num_nodes;
-    num_nodes = (2*num_nodes)-1;
-
-    while(num_leaf != 1)
+    // a linear traversal through the low end of the nodes array ito find the two minimum nodes
+    for(i = 0; i < num_leaf && num_leaf != 1; i++)
     {
-
-        NODE *min_node;
-        NODE *min_node2;
-
-         nodes_ptr = nodes;
-
-        for(i = 0; i < num_leaf && num_leaf != 1; i++)
+        if(i == 0)
         {
-            if(i == 0)
+            min_node = nodes;
+        }
+        else if(i == 1)
+        {
+            if(min_node->weight > nodes_ptr->weight)
             {
-                min_node = nodes;
-            }
-            else if(i == 1)
-            {
-                if(min_node->weight > nodes_ptr->weight)
-                {
-                    min_node2 = min_node;
-                    min_node = nodes_ptr;
-                }
-                else
-                {
-                    min_node2 = nodes_ptr;
-                }
+                min_node2 = min_node;
+                min_node = nodes_ptr;
             }
             else
             {
-                if(min_node->weight > nodes_ptr->weight && min_node2->weight > nodes_ptr->weight)
-                {
-                    min_node2 = min_node;
-                    min_node = nodes_ptr;
-                }
-                else if(min_node2->weight > nodes_ptr->weight)
-                {
-                    min_node2 = nodes_ptr;
-                }
+                min_node2 = nodes_ptr;
             }
-            nodes_ptr++;
         }
-
-
-        NODE min;
-        min.symbol = min_node->symbol;
-        min.weight = min_node->weight;
-        //min.parent = min_node->parent;
-        min.left = min_node->left;
-        min.right = min_node->right;
-        NODE min2;
-        min2.symbol = min_node2->symbol;
-        min2.weight = min_node2->weight;
-        //min2.parent = min_node2->parent;
-        min2.left = min_node2->left;
-        min2.right = min_node2->right;
-
-
-        nodes_ptr = nodes;
-        NODE *next = ++nodes_ptr;
-        nodes_ptr = nodes;
-
-        int found = 0;
-
-        for(i = 0; i < num_leaf;i++)
+        else
         {
-
-            if(nodes_ptr->symbol == min.symbol || found == 1)
+            if(min_node->weight > nodes_ptr->weight && min_node2->weight > nodes_ptr->weight)
             {
-                nodes_ptr->weight = next->weight;
-                nodes_ptr->symbol = next->symbol;
-                nodes_ptr->left = next->left;
-                nodes_ptr->right = next->right;
-                nodes_ptr->parent = next->parent;
-                found = 1;
+                min_node2 = min_node;
+                min_node = nodes_ptr;
             }
-            nodes_ptr++;
-            next++;
+            else if(min_node2->weight > nodes_ptr->weight)
+            {
+                min_node2 = nodes_ptr;
+            }
         }
+        nodes_ptr++;
+    }
+    // storing the information of the two minimum nodes
+    min->symbol = min_node->symbol;
+    min->weight = min_node->weight;
+    min->left = min_node->left;
+    min->right = min_node->right;
 
+    min2->symbol = min_node2->symbol;
+    min2->weight = min_node2->weight;
+    min2->left = min_node2->left;
+    min2->right = min_node2->right;
+}
 
-        nodes_ptr = nodes;
-        next = ++nodes_ptr;
-        nodes_ptr = nodes;
+/**
+ *  shift method --- removes the two minimum nodes found in the low end of the nodes array
+ *  Shifts the remaining nodes in the array to maintain a contiguous set of nodes
+ *
+ *  num_leaf is the number of nodes remaining in the low end of the array
+ */
 
-        found = 0;
-        for(i = 0; i < num_leaf-1;i++)
+void shift(NODE min,NODE min2,int num_leaf)
+{
+    int found = 0;
+    int i;
+
+    //reference to the current node address and next node address
+    NODE *nodes_ptr = nodes;
+    NODE *next = ++nodes_ptr;
+    nodes_ptr = nodes;
+
+    // removing and shifting from the minimum node
+    for(i = 0; i < num_leaf;i++)
+    {
+        if(nodes_ptr->symbol == min.symbol || found == 1)
         {
-
-            if(nodes_ptr->symbol == min2.symbol || found == 1)
-            {
-                nodes_ptr->weight = next->weight;
-                nodes_ptr->symbol = next->symbol;
-                nodes_ptr->left = next->left;
-                nodes_ptr->right = next->right;
-                nodes_ptr->parent = next->parent;
-                found = 1;
-            }
-            nodes_ptr++;
-            next++;
+            nodes_ptr->weight = next->weight;
+            nodes_ptr->symbol = next->symbol;
+            nodes_ptr->left = next->left;
+            nodes_ptr->right = next->right;
+            nodes_ptr->parent = next->parent;
+            found = 1;
         }
-
-
-        nodes_ptr = nodes;
-        for(i = 0; i < 2*num_leaf-1;i++)
-        {
-            NODE *parent_index;
-            if(i == 2*num_leaf-3)
-            {
-                //nodes_ptr = min_node2;
-                nodes_ptr->weight = min2.weight;
-                nodes_ptr->symbol = min2.symbol;
-                nodes_ptr->parent = parent_index;
-                nodes_ptr->left = min2.left;
-                nodes_ptr->right = min2.right;
-                //update parent left and right pointers
-                parent_index->right = nodes_ptr;
-            }
-            else if(i == 2*num_leaf-2)
-            {
-                //nodes_ptr = min_node;
-                nodes_ptr->weight = min.weight;
-                nodes_ptr->symbol = min.symbol;
-                nodes_ptr->left = min.left;
-                nodes_ptr->right = min.right;
-                nodes_ptr->parent = parent_index;
-                //update parent left and right pointers
-                parent_index->left = nodes_ptr;
-            }
-            else if(i == num_leaf-2)
-            {
-                nodes_ptr->symbol = 500;
-                nodes_ptr->weight = min2.weight + min.weight;
-                nodes_ptr->parent = NULL;
-
-                parent_index = nodes_ptr;
-
-            }
-            nodes_ptr++;
-        }
-
-        num_leaf = num_leaf-1;
+        nodes_ptr++;
+        next++;
     }
 
-    NODE *nodes_array = nodes;
+    //reference to the current node address and next node address
+    nodes_ptr = nodes;
+    next = ++nodes_ptr;
+    nodes_ptr = nodes;
+    found = 0;
+
+    // removing and shifting from the second minimum node
+    for(i = 0; i < num_leaf-1;i++)
+    {
+        if(nodes_ptr->symbol == min2.symbol || found == 1)
+        {
+            nodes_ptr->weight = next->weight;
+            nodes_ptr->symbol = next->symbol;
+            nodes_ptr->left = next->left;
+            nodes_ptr->right = next->right;
+            nodes_ptr->parent = next->parent;
+            found = 1;
+        }
+        nodes_ptr++;
+        next++;
+    }
+}
+
+/**
+ *  construct_tree --- places the two minimum nodes previously found into node[2*num_leaf-2]
+ *  and node[2*num_leaf-3]. The parent node, the sum of the two minimum nodes is placed into
+ *  node[num_leaf-2].
+ *
+ *  nun_leaf - number of nodes remaining in the low end of the array.
+ */
+void construct_tree(NODE min,NODE min2,int num_leaf)
+{
+    //placing the two min nodes and parent node into the correct array position
+    //plaing the parent node to the correct array index
+    NODE *nodes_ptr = nodes+(num_leaf-2);
+    NODE *parent_index;
+    nodes_ptr->symbol = 500;
+    nodes_ptr->weight = min2.weight + min.weight;
+    nodes_ptr->parent = NULL;
+    parent_index = nodes_ptr;
+
+    //placing the second min node to the correct array index
+    nodes_ptr = nodes+(2*num_leaf-3);
+    nodes_ptr->weight = min2.weight;
+    nodes_ptr->symbol = min2.symbol;
+    nodes_ptr->left = min2.left;
+    nodes_ptr->right = min2.right;
+    //update parent node right pointer
+    parent_index->right = nodes_ptr;
+
+    //placing the minimum node to the correct array index
+    nodes_ptr++;
+    nodes_ptr->weight = min.weight;
+    nodes_ptr->symbol = min.symbol;
+    nodes_ptr->left = min.left;
+    nodes_ptr->right = min.right;
+    //update parent left pointer
+    parent_index->left = nodes_ptr;
+}
+
+int build_huff()
+{
+
+    process_block();
+
+     //setting the total number of nodes our tree can have
+    num_nodes = (2*num_nodes)-1;
+
+    //number of nodes in the low end of tree (initially number of leaf nodes)
+    int num_leaf = (num_nodes+1)/2;
+
+    //leaf nodes are now in the array
+    while(num_leaf != 1)
+    {
+        NODE min;
+        NODE min2;
+
+        // finding the two min nodes in the array
+        find_min(&min,&min2,num_leaf);
+
+        // removes the two minimum nodes and shifts remaining nodes
+        shift(min,min2,num_leaf);
+
+        // place the two removed nodes and parent to the correct index of the array
+        // setting the left and right child pointers of parent nodes
+        construct_tree(min,min2,num_leaf);
+
+        //repeat until 1 node in lower end is left (root node)
+        num_leaf = num_leaf-1;
+    }
+    // traversing through the nodes array to correctly set the parent pointers of each node
+    // and setting pointers to the leaf nodes in the array
+    int i;
+    NODE *nodes_ptr = nodes;
     NODE **node_symbol = node_for_symbol;
     for(i = 0 ;i < num_nodes;i++)
     {
-        //printf("%c %d %s\n",(unsigned char)nodes_array->symbol,nodes_array->weight, "is the current node");
-
-        if(nodes_array->left == NULL && nodes_array->right == NULL)
+        if(nodes_ptr->left == NULL && nodes_ptr->right == NULL)
         {
             //leaf node - assign pointer!
-            *node_symbol++ = nodes_array;
-            //node_symbol++;
+            *node_symbol++ = nodes_ptr;
         }
-
-        if(nodes_array->left != NULL)
+        if(nodes_ptr->left != NULL)
         {
-            NODE *p = nodes_array->left;
-            p->parent = nodes_array;
-            //printf("%c %d %s\n",(unsigned char)p->symbol,p->weight,"is the left child");
+            NODE *p = nodes_ptr->left;
+            p->parent = nodes_ptr;
         }
-        if(nodes_array->right != NULL)
+        if(nodes_ptr->right != NULL)
         {
-            NODE *p = nodes_array->right;
-            p->parent = nodes_array;
-            //printf("%c %d %s\n\n",(unsigned char)p->symbol,p->weight,"is the right child");
-        //printf("%d\n",nodes_array->symbol);
+            NODE *p = nodes_ptr->right;
+            p->parent = nodes_ptr;;
         }
-/*
-        if(nodes_array->parent != NULL)
-        {
-            NODE *p = nodes_array->parent;
-            //printf("%c %d %s\n\n",(unsigned char)p->symbol,p->weight,"is the parent");
-        }
-        */
-        nodes_array++;
+        nodes_ptr++;
     }
+
     num_leaf = (num_nodes+1)/2;
     node_symbol = node_for_symbol;
+/*
     for(i = 0; i <num_leaf;i++)
     {
         NODE *node_p = *node_symbol;
@@ -311,6 +345,54 @@ int build_huff()
         node_symbol++;
     }
     printf("\n");
+
+    node_symbol = node_for_symbol;
+    */
+    emit_huffman_tree();
+
+    int big_num = 1000000000;
+    printf("%d\n",big_num);
+    unsigned char *input_block = current_block;
+    int found = 0;
+    while(*input_block != '\0')
+    {
+        for(i = 0 ;i < num_leaf && found == 0;i++)
+        {
+            NODE *node_p = *node_symbol;
+            printf("%c %c\n",(unsigned char)node_p->symbol,*input_block);
+            if((unsigned char)node_p->symbol == *input_block)
+            {
+                printf("yay match\n");
+                found = 1;
+            }
+            else
+            {
+                printf("no match\n");
+                node_symbol++;
+            }
+        }
+        input_block++;
+        node_symbol = node_for_symbol;
+        found = 0;
+        if(*input_block == '\0')
+        {
+            for(i = 0; i < num_leaf && found == 0;i++)
+            {
+                NODE *node_p = *node_symbol;
+                //printf("%c %c\n",(unsigned char)node_p->symbol,*input_block);
+                if(node_p->symbol == 400)
+                {
+                    printf("yay match\n");
+                    found = 1;
+                }
+                else
+                {
+                    printf("no match\n");
+                    node_symbol++;
+                }
+            }
+        }
+    }
 
 
 
@@ -325,6 +407,7 @@ int build_huff()
  */
 void emit_huffman_tree() {
     // To be implemented.
+    ;
 }
 
 /**
