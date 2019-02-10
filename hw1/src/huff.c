@@ -351,23 +351,68 @@ int build_huff()
     emit_huffman_tree();
 
     int big_num = 1000000000;
-    printf("%d\n",big_num);
+    //printf("%d\n",big_num);
     unsigned char *input_block = current_block;
     int found = 0;
+    int bit_count = 0;
+    int bit_num = 0;
     while(*input_block != '\0')
     {
         for(i = 0 ;i < num_leaf && found == 0;i++)
         {
             NODE *node_p = *node_symbol;
-            printf("%c %c\n",(unsigned char)node_p->symbol,*input_block);
+            //printf("%c %c\n",(unsigned char)node_p->symbol,*input_block);
             if((unsigned char)node_p->symbol == *input_block)
             {
-                printf("yay match\n");
+                //printf("yay match\n");
+                node_p->weight = big_num;
+                while(node_p->parent != NULL)
+                {
+                    node_p = node_p->parent;
+                    node_p->weight = big_num;
+                }
+                //node_p should be root now
+                while(node_p->left != NULL && node_p->right != NULL)
+                {
+                    if(node_p->left != NULL && (node_p->left)->weight == big_num)
+                    {
+                        node_p = node_p->left;
+                        bit_num = bit_num | 0;
+                        bit_count++;
+                        if(bit_count == 8)
+                        {
+                            printf("%c",(unsigned char)bit_num);
+                            bit_count = 0;
+                            bit_num = 0;
+                        }
+                        else
+                        {
+                            bit_num = bit_num << 1;
+                        }
+                    }
+                    else if(node_p->right != NULL && (node_p->right)->weight == big_num)
+                    {
+                        node_p = node_p->right;
+                        bit_num = bit_num | 1;
+                        bit_count++;
+                        if(bit_count == 8)
+                        {
+                            printf("%c",(unsigned char)bit_num);
+                            bit_count = 0;
+                            bit_num = 0;
+                        }
+                        else
+                        {
+                            bit_num = bit_num << 1;
+                        }
+                    }
+                }
+                big_num++;
                 found = 1;
             }
             else
             {
-                printf("no match\n");
+                //printf("no match\n");
                 node_symbol++;
             }
         }
@@ -379,15 +424,74 @@ int build_huff()
             for(i = 0; i < num_leaf && found == 0;i++)
             {
                 NODE *node_p = *node_symbol;
-                //printf("%c %c\n",(unsigned char)node_p->symbol,*input_block);
                 if(node_p->symbol == 400)
                 {
-                    printf("yay match\n");
+                    node_p->weight = big_num;
+                    while(node_p->parent != NULL)
+                    {
+                        node_p = node_p->parent;
+                        node_p->weight = big_num;
+                    }
+                    //node_p should be root now
+                    while(node_p->left != NULL && node_p->right != NULL)
+                    {
+                        if(node_p->left != NULL && (node_p->left)->weight == big_num)
+                        {
+                            node_p = node_p->left;
+                            bit_num = bit_num | 0;
+                            bit_count++;
+                            if(bit_count == 8)
+                            {
+                                printf("%c",(unsigned char)bit_num);
+                                bit_count = 0;
+                                bit_num = 0;
+                            }
+                            else
+                            {
+                                bit_num = bit_num << 1;
+                            }
+                        }
+                        else if(node_p->right != NULL && (node_p->right)->weight == big_num)
+                        {
+                            node_p = node_p->right;
+                            bit_num = bit_num | 1;
+                            bit_count++;
+                            if(bit_count == 8)
+                            {
+                                printf("%c",(unsigned char)bit_num);
+                                bit_count = 0;
+                                bit_num = 0;
+                            }
+                            else
+                            {
+                                bit_num = bit_num << 1;
+                            }
+                        }
+                    }
                     found = 1;
+                    //printf("\n%d\n",bit_count);
+
+                    //if(bit_count != 0 && bit_count != 8)
+                    //{
+                        while(bit_count != 8 && bit_count != 0)
+                        {
+                            bit_num = bit_num | 0;
+                            //bit_num = bit_num << 1;
+                            bit_count++;
+                            if(bit_count == 8)
+                            {
+                                printf("%c",(unsigned char)bit_num);
+                            }
+                            else
+                            {
+                                bit_num = bit_num << 1;
+                            }
+                        }
+                    //}
                 }
                 else
                 {
-                    printf("no match\n");
+                    //printf("no match\n");
                     node_symbol++;
                 }
             }
@@ -399,6 +503,51 @@ int build_huff()
     return 1;
 }
 
+void postorder(NODE *node,int *byte_count,int *display)
+{
+    if(node == NULL)
+        return;
+
+    postorder(node->left,byte_count,display);
+
+    postorder(node->right,byte_count,display);
+
+    if(node->left == NULL && node->right == NULL)
+    {
+        //printf("0 ");
+        //printf("%d\n",*byte_count);
+        *byte_count = *byte_count + 1;
+        //printf("%d\n",*byte_count);
+        *display = *display | 0;
+        if(*byte_count == 8)
+        {
+            printf("%c",(unsigned char)*display);
+            *byte_count = 0;
+            *display = 0;
+        }
+        else
+        {
+            *display = *display << 1;
+        }
+    }
+    else
+    {
+        //printf("1 ");
+        *byte_count = *byte_count + 1;
+        *display = *display | 1;
+        if(*byte_count == 8)
+        {
+            printf("%c",(unsigned char)*display);
+            *byte_count = 0;
+            *display = 0;
+        }
+        else
+        {
+            *display = *display << 1;
+        }
+    }
+}
+
 /**
  * @brief Emits a description of the Huffman tree used to compress the current block.
  * @details This function emits, to the standard output, a description of the
@@ -407,7 +556,31 @@ int build_huff()
  */
 void emit_huffman_tree() {
     // To be implemented.
-    ;
+    int number = num_nodes;
+    unsigned int number_1 = number << 24;
+    number_1 = number_1 >> 24;
+    unsigned int number_2 = number >> 8;
+    printf("%c%c",(unsigned char)number_2,(unsigned char)number_1);
+    NODE **p = node_for_symbol;
+    NODE *root = *p;
+    while(root->parent != NULL)
+    {
+        root = root->parent;
+    }
+    int byte_count = 0;
+    int display = 0;
+    postorder(root,&byte_count,&display);
+    //printf("%d %d\n",display,byte_count);
+
+    while(byte_count != 0 && byte_count != 8)
+    {
+        display = display | 0;
+        byte_count++;
+        if(byte_count != 8)
+            display = display << 1;
+    }
+    printf("%c",(unsigned char)display);
+
 }
 
 /**
