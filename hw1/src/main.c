@@ -42,7 +42,17 @@ int main(int argc, char **argv)
     // d flag provided
     else if(global_options & 0x4)
     {
+/*
+        int number = 7;
+        unsigned int number_1 = number << 24;
+        number_1 = number_1 >> 24;
+        unsigned int number_2 = number >> 8;
+        printf("%c%c",(unsigned char)number_2,(unsigned char)number_1);
+        printf("%c%c%c%c",'a',(unsigned char)4,'n','g');
 
+*/
+        int result = read_huffman_tree();
+        //printf("%d\n",result);
     }
     // printf("%s\n","executed");
      return EXIT_SUCCESS;

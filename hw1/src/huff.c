@@ -34,6 +34,8 @@
  * YOU WILL GET A ZERO!
  */
 
+#define end_symbol (400)
+
 /**
  *  string_to_int --- converts a string into an int and checks if all chars
  *  of the string are digits (0-9). Returns 0 if strings are not digits.
@@ -121,7 +123,7 @@ void process_block()
         found = 0;
     }
     // adding the end block symbol
-    nodes_ptr->symbol = 400;
+    nodes_ptr->symbol = end_symbol;
     nodes_ptr->weight = 0;
     nodes_ptr->parent = NULL;
     nodes_ptr->right = NULL;
@@ -261,23 +263,38 @@ void construct_tree(NODE min,NODE min2,int num_leaf)
     nodes_ptr->parent = NULL;
     parent_index = nodes_ptr;
 
-    //placing the second min node to the correct array index
+    //placing the min node to the correct array index
     nodes_ptr = nodes+(2*num_leaf-3);
-    nodes_ptr->weight = min2.weight;
-    nodes_ptr->symbol = min2.symbol;
-    nodes_ptr->left = min2.left;
-    nodes_ptr->right = min2.right;
-    //update parent node right pointer
-    parent_index->right = nodes_ptr;
-
-    //placing the minimum node to the correct array index
-    nodes_ptr++;
     nodes_ptr->weight = min.weight;
     nodes_ptr->symbol = min.symbol;
     nodes_ptr->left = min.left;
     nodes_ptr->right = min.right;
-    //update parent left pointer
+    //update parent node right pointer
     parent_index->left = nodes_ptr;
+
+    //placing the second minimum node to the correct array index
+    nodes_ptr++;
+    nodes_ptr->weight = min2.weight;
+    nodes_ptr->symbol = min2.symbol;
+    nodes_ptr->left = min2.left;
+    nodes_ptr->right = min2.right;
+    //update parent left pointer
+    parent_index->right = nodes_ptr;
+}
+
+void set_leaf_ptr(NODE *node,int *count)
+{
+    if(node == NULL)
+        return;
+    set_leaf_ptr(node->left,count);
+    set_leaf_ptr(node->right,count);
+    if(node->left == NULL && node->right == NULL)
+    {
+        int num = *count;
+        NODE **leaf = (node_for_symbol+num);
+        *leaf = node;
+        *count = *count + 1;
+    }
 }
 
 int build_huff()
@@ -317,11 +334,11 @@ int build_huff()
     NODE **node_symbol = node_for_symbol;
     for(i = 0 ;i < num_nodes;i++)
     {
-        if(nodes_ptr->left == NULL && nodes_ptr->right == NULL)
-        {
+        //if(nodes_ptr->left == NULL && nodes_ptr->right == NULL)
+        //{
             //leaf node - assign pointer!
-            *node_symbol++ = nodes_ptr;
-        }
+            //*node_symbol++ = nodes_ptr;
+        //}
         if(nodes_ptr->left != NULL)
         {
             NODE *p = nodes_ptr->left;
@@ -334,9 +351,44 @@ int build_huff()
         }
         nodes_ptr++;
     }
+    int count = 0;
+    set_leaf_ptr(nodes,&count);
 
     num_leaf = (num_nodes+1)/2;
     node_symbol = node_for_symbol;
+
+
+
+
+/*
+
+    i = 0;
+    NODE *p = nodes;
+    while(i < num_nodes)
+    {
+        if(p->symbol == 400)
+            printf("%c %s\n",p->symbol," is the end block");
+        else
+            printf("%c %s\n",p->symbol, " is the current node");
+
+        if(p->left != NULL)
+        {
+            printf("%c %s\n",(p->left)->symbol," is the left child");
+        }
+        if(p->right != NULL)
+        {
+            printf("%c %s\n",(p->right)->symbol," is the right child");
+        }
+
+        p++;
+        i++;
+    }
+    */
+
+
+
+
+
 /*
     for(i = 0; i <num_leaf;i++)
     {
@@ -424,7 +476,7 @@ int build_huff()
             for(i = 0; i < num_leaf && found == 0;i++)
             {
                 NODE *node_p = *node_symbol;
-                if(node_p->symbol == 400)
+                if(node_p->symbol == end_symbol)
                 {
                     node_p->weight = big_num;
                     while(node_p->parent != NULL)
@@ -547,6 +599,46 @@ void postorder(NODE *node,int *byte_count,int *display)
         }
     }
 }
+/*
+void print_symbol(NODE *node)
+{
+
+    if(node == NULL)
+        return;
+    print_symbol(node->left);
+    print_symbol(node->right);
+    if(node->left == NULL && node-> right == NULL)
+    {
+        if(node->symbol == end_symbol)
+        {
+            printf("%c%c",(unsigned char)255,(unsigned char)0);
+        }
+        else
+            printf("%c",(unsigned char)node->symbol);
+    }
+}
+*/
+
+void print_symbol()
+{
+    int i;
+    for(i = 0; i < (num_nodes+1)/2; i++)
+    {
+        NODE **p = node_for_symbol+i;
+        NODE *a_node = *p;
+        if(a_node->symbol == end_symbol)
+        {
+            printf("%c%c",(unsigned char)255,(unsigned char)0);
+        }
+        else if(a_node->symbol == 255)
+        {
+            printf("%c%c",(unsigned char)255,(unsigned char)1);
+        }
+        else
+            printf("%c",(unsigned char)a_node->symbol);
+    }
+}
+
 
 /**
  * @brief Emits a description of the Huffman tree used to compress the current block.
@@ -562,14 +654,16 @@ void emit_huffman_tree() {
     unsigned int number_2 = number >> 8;
     printf("%c%c",(unsigned char)number_2,(unsigned char)number_1);
     NODE **p = node_for_symbol;
+    /*
     NODE *root = *p;
     while(root->parent != NULL)
     {
         root = root->parent;
     }
+    */
     int byte_count = 0;
     int display = 0;
-    postorder(root,&byte_count,&display);
+    postorder(nodes,&byte_count,&display);
     //printf("%d %d\n",display,byte_count);
 
     while(byte_count != 0 && byte_count != 8)
@@ -581,7 +675,141 @@ void emit_huffman_tree() {
     }
     printf("%c",(unsigned char)display);
 
+    //print_symbol(nodes);
+    print_symbol();
+
 }
+
+
+int reconstruct(int c,int *low_index,int *high_index,int remain)
+{
+    int byte_index = 128;
+    int i = 0;
+    NODE *high = nodes+(*high_index);
+    NODE *low = nodes+(*low_index);
+
+    int counts = 450;
+    int counter = 65;
+    while( i != remain)
+    {
+        int result = c & byte_index;
+        if(*low_index  >= num_nodes || *low_index < 0 || *high_index < 0  || *low_index > *high_index)
+            return 1;
+
+        if(result == 0)
+        {
+
+            low->symbol = counter;
+            low->left = NULL;
+            low->right = NULL;
+            counter++;
+            low++;
+            *low_index = *low_index+1;
+        }
+        else if(result != 0)
+        {
+            if(*low_index -2 < 0 || *high_index-2 < 0)
+                return 1;
+            low--;
+            NODE *reference = high;
+            high->left = low->left;
+            high->right = low->right;
+            high->symbol = low->symbol;
+            high--;
+
+            low--;
+            high->left = low->left;
+            high->right = low->right;
+            high->symbol = low->symbol;
+            //high->weight = i;
+
+            low->left = high;
+            high--;
+            low->right = reference;
+            //low->weight = i;
+            low->symbol = counts;
+            counts++;
+            low++;
+            *low_index = *low_index-1;
+            *high_index = *high_index-2;
+        }
+        i++;
+        byte_index = byte_index >> 1;
+        //printf("%d %d \n",*low_index,*high_index);
+    }
+
+    int count = 0;
+    //NODE **leaf_ptr = node_for_symbol
+    set_leaf_ptr(nodes,&count);
+    //printf("%d\n",count);
+
+    return 0;
+
+
+/*
+    i = 0;
+    //NODE *p = *pe;
+    while(i < (num_nodes+1)/2)
+    {
+        NODE **pe = node_for_symbol+i;
+        NODE *p = *pe;
+
+        printf("%d %s\n",p->symbol, " is the current node");
+
+        if(p->left != NULL)
+        {
+            printf("%d %s\n",(p->left)->symbol," is the left child");
+        }
+        if(p->right != NULL)
+        {
+            printf("%d %s\n",(p->right)->symbol," is the right child");
+        }
+
+
+
+        i++;
+        //p = (*node_for_symbol)+i;
+        //p++;
+    }
+    */
+
+}
+
+int convert_symbol()
+{
+    NODE *node = nodes;
+    int i;
+    int c;
+    int byte = 128;
+    for(i = 0; (c = getchar()) != EOF; i++)
+    {
+        while(found == 0 && byte != 0)
+        {
+
+            if(node->left == NULL && node->right == NULL)
+            {
+                //found leaf node print!
+                node = nodes;
+            }
+            if((c & byte) != 0)
+            {
+                if(node == NULL)
+                    return 1;
+                node = node->right;
+            }
+            else
+            {
+                if(node == NULL)
+                    return 1;
+                node = node->left;
+            }
+
+            byte >> 1;
+        }
+    }
+    return 0;
+}
+
 
 /**
  * @brief Reads a description of a Huffman tree and reconstructs the tree from
@@ -595,9 +823,166 @@ void emit_huffman_tree() {
  * @return 0 if the tree is read and reconstructed without error, otherwise 1
  * if an error occurs.
  */
-int read_huffman_tree() {
-    // To be implemented.
-    return 1;
+int read_huffman_tree()
+{
+    int c;
+    int success = 0;
+    int i;
+    int j = 0;
+    int node_count;
+   // NODE *low_end = nodes;
+   // NODE *high_end;
+    int low_index = 0;
+    int high_index = 0;
+    int num_leaf;
+    //NODE **node_4_symbol = node_for_symbol;
+    //NODE *aNODE = node_for_symbol;
+    //NODE *aNODE;
+
+    //aNODE->symbol = 55;
+
+    //node_4_symbol->symbol = 55;
+    //printf("%s\n","Executed");
+
+
+    for(i = 0; success == 0 && (c = getchar()) != EOF; i++)
+    {
+        //printf("executed");
+        if(i == 0 || i == 1)
+        {
+            if(i == 0)
+                num_nodes = c;
+            else
+            {
+                num_nodes = num_nodes << 8;
+                num_nodes = num_nodes | c;
+                node_count = num_nodes;
+                num_leaf = (num_nodes+1)/2;
+                high_index = num_nodes-1;
+            }
+            //printf("%d\n",num_nodes);
+
+            if(num_nodes >  2*(256+1)-1)
+            {
+                return 1;
+            }
+
+        }
+        // full byte
+        else if(node_count >= 0 && node_count-8 >= 0)
+        {
+
+            int result = reconstruct(c,&low_index,&high_index,8);
+            if(result == 1)
+                return 1;
+            node_count = node_count - 8;
+
+        }
+        else if(node_count >= 0)
+        {
+            // partial byte
+
+            int remain = node_count;
+            int result = reconstruct(c,&low_index,&high_index,remain);
+            if(result == 1)
+               return 1;
+
+
+
+            node_count = node_count - 8;
+        }
+
+        else if(j < num_leaf)
+        {
+            NODE **leaf_array = node_for_symbol+j;
+            NODE *a_node = *leaf_array;
+
+            if(j == num_leaf-1)
+                success = 1;
+            if( c == 255)
+            {
+                if((c = getchar()) != EOF)
+                {
+                    if( c == 0)
+                    {
+
+                        a_node->symbol = end_symbol;
+
+                    }
+                    else
+                    {
+                        a_node->symbol = 255;
+
+                    }
+                }
+                else
+                    return 1;
+            }
+            else
+            {
+                a_node->symbol = c;
+            }
+
+            j++;
+            if(j == num_leaf)
+            {
+                success = 1;
+            }
+
+        }
+
+        //printf("%d %d\n",low_index,high_index);
+    }
+
+    // not enough input
+    if(i == 0 || i == 1)
+        return 1;
+    //incomplete tree (not enough bits for postorder traversal)
+    if(node_count > 0)
+    {
+        //printf("%d\n",node_count);
+        return 1;
+    }
+    // not enough symbols read in
+    if(j != num_leaf)
+        return 1;
+    if(success == 0)
+        return 1;
+
+
+    convert_symbol();
+
+
+
+/*
+    i = 0;
+    NODE *p = nodes;
+    while(i < num_nodes)
+    {
+        if(p->symbol == 400)
+            printf("%c %s\n",p->symbol," is the end block");
+        else
+            printf("%c %s\n",p->symbol, " is the current node");
+
+        if(p->left != NULL)
+        {
+            printf("%c %s\n",(p->left)->symbol," is the left child");
+        }
+        if(p->right != NULL)
+        {
+            printf("%c %s\n",(p->right)->symbol," is the right child");
+        }
+
+        p++;
+        i++;
+    }
+    */
+
+
+
+
+   // printf("%d\n",num_nodes);
+    return 0;
 }
 
 /**
@@ -795,7 +1180,6 @@ int validargs(int argc, char **argv)
             {
                 return 1;
             }
-
         }
         else if(compare_string(first_arg,"-d"))
         {
