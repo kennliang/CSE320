@@ -35,7 +35,9 @@ int main(int argc, char **argv)
     // c flag provided
     else if(global_options & 0x2)
     {
-        compress();
+        ret = compress();
+        if(ret)
+            return EXIT_FAILURE;
         //printf("%s\n","executed");
         //USAGE(*argv, EXIT_SUCCESS);
     }
@@ -49,14 +51,26 @@ int main(int argc, char **argv)
         unsigned int number_2 = number >> 8;
         printf("%c%c",(unsigned char)number_2,(unsigned char)number_1);
         printf("%c%c%c%c",'a',(unsigned char)4,'n','g');
+        */
 
-*/
-        int result = read_huffman_tree();
+
+        //read_huffman_tree();
+        //printf("exeucted");
+        //decompress_block();
+        //printf("exeucted");
+
+        //printf("exeucted");
+        ret = decompress();
+        //printf("\n%d\n",ret);
+        if(ret)
+            return EXIT_FAILURE;
+
         //printf("%d\n",result);
     }
     // printf("%s\n","executed");
      return EXIT_SUCCESS;
 }
+
 
 /*
  * Just a reminder: All non-main functions should

@@ -775,12 +775,15 @@ int reconstruct(int c,int *low_index,int *high_index,int remain)
 
 }
 
+
+/*
 int convert_symbol()
 {
     NODE *node = nodes;
     int i;
     int c;
     int byte = 128;
+    int found = 0;
     for(i = 0; (c = getchar()) != EOF; i++)
     {
         while(found == 0 && byte != 0)
@@ -789,7 +792,13 @@ int convert_symbol()
             if(node->left == NULL && node->right == NULL)
             {
                 //found leaf node print!
+                if(node->symbol == end_symbol)
+                    return 0;
+                printf("%c",(unsigned char)node->symbol);
                 node = nodes;
+
+                if(byte == 1)
+                     found = 1;
             }
             if((c & byte) != 0)
             {
@@ -804,11 +813,17 @@ int convert_symbol()
                 node = node->left;
             }
 
-            byte >> 1;
+            byte = byte >> 1;
         }
+        byte = 128;
+        found = 0;
+
     }
     return 0;
 }
+
+*/
+
 
 
 /**
@@ -830,24 +845,12 @@ int read_huffman_tree()
     int i;
     int j = 0;
     int node_count;
-   // NODE *low_end = nodes;
-   // NODE *high_end;
     int low_index = 0;
     int high_index = 0;
     int num_leaf;
-    //NODE **node_4_symbol = node_for_symbol;
-    //NODE *aNODE = node_for_symbol;
-    //NODE *aNODE;
-
-    //aNODE->symbol = 55;
-
-    //node_4_symbol->symbol = 55;
-    //printf("%s\n","Executed");
-
 
     for(i = 0; success == 0 && (c = getchar()) != EOF; i++)
     {
-        //printf("executed");
         if(i == 0 || i == 1)
         {
             if(i == 0)
@@ -860,38 +863,28 @@ int read_huffman_tree()
                 num_leaf = (num_nodes+1)/2;
                 high_index = num_nodes-1;
             }
-            //printf("%d\n",num_nodes);
-
             if(num_nodes >  2*(256+1)-1)
             {
                 return 1;
             }
-
         }
         // full byte
         else if(node_count >= 0 && node_count-8 >= 0)
         {
-
             int result = reconstruct(c,&low_index,&high_index,8);
             if(result == 1)
                 return 1;
             node_count = node_count - 8;
-
         }
         else if(node_count >= 0)
         {
             // partial byte
-
             int remain = node_count;
             int result = reconstruct(c,&low_index,&high_index,remain);
             if(result == 1)
                return 1;
-
-
-
             node_count = node_count - 8;
         }
-
         else if(j < num_leaf)
         {
             NODE **leaf_array = node_for_symbol+j;
@@ -905,33 +898,28 @@ int read_huffman_tree()
                 {
                     if( c == 0)
                     {
-
                         a_node->symbol = end_symbol;
-
                     }
                     else
                     {
                         a_node->symbol = 255;
-
                     }
                 }
                 else
+                {
                     return 1;
+                }
             }
             else
             {
                 a_node->symbol = c;
             }
-
             j++;
             if(j == num_leaf)
             {
                 success = 1;
             }
-
         }
-
-        //printf("%d %d\n",low_index,high_index);
     }
 
     // not enough input
@@ -948,12 +936,6 @@ int read_huffman_tree()
         return 1;
     if(success == 0)
         return 1;
-
-
-    convert_symbol();
-
-
-
 /*
     i = 0;
     NODE *p = nodes;
@@ -977,9 +959,6 @@ int read_huffman_tree()
         i++;
     }
     */
-
-
-
 
    // printf("%d\n",num_nodes);
     return 0;
@@ -1012,9 +991,83 @@ int compress_block() {
  *
  * @return 0 if decompression completes without error, 1 if an error occurs.
  */
-int decompress_block() {
-    // To be implemented.
-    return 1;
+int decompress_block()
+{
+
+    NODE *node = nodes;
+    int i;
+    int c;
+    int byte = 128;
+    int end_byte = 0;
+    int end_block = 0;
+    int count = 0;
+
+    for(i = 0;  end_block == 0 && (c = getchar()) != EOF ; i++)
+    {
+        //printf("%d\n",c);
+        while(end_byte == 0 && byte != 0 && end_block == 0)
+        {
+            //if(count == 1)
+                //printf("%d\n",byte);
+            if(node->left == NULL && node->right == NULL)
+            {
+                //found leaf node print!
+                if(node->symbol == end_symbol)
+                {
+                    end_block = 1;
+                    //printf("executed");
+                    //node = nodes;
+                }
+                else
+                {
+
+                    unsigned char *input = current_block+count;
+                    *input = (unsigned char)node->symbol;
+                    //printf("%c",(unsigned char)node->symbol);
+                    count++;
+                    node = nodes;
+                    //if(byte == 1)
+                         //end_byte = 1;
+
+                }
+            }
+            else if((c & byte) != 0)
+            {
+                if(node == NULL)
+                    return 1;
+                node = node->right;
+                byte = byte >> 1;
+                //printf("54454");
+            }
+            else
+            {
+                if(node == NULL)
+                    return 1;
+                node = node->left;
+                byte = byte >> 1;
+                //printf("executed");
+            }
+
+        }
+        byte = 128;
+        //end_byte = 0;
+    }
+    //printf("%d %d\n",c,end_block);
+    if(c == EOF && end_block == 0)
+    {
+        //printf("executed");
+        return 1;
+    }
+
+    //print symbols
+    for(i = 0; i < count ; i++)
+    {
+        unsigned char s = *(current_block+i);
+        printf("%c",s);
+    }
+
+    return 0;
+
 }
 
 /**
@@ -1098,7 +1151,35 @@ int compress()
  */
 int decompress() {
     // To be implemented.
-    return 1;
+    int error = 0;
+    int c;
+
+    while((c = getchar()) != EOF)
+    {
+        //printf("executed");
+
+        error = ungetc(c,stdin);
+        if(error == EOF)
+        {
+            printf("1");
+            return 1;
+        }
+        //printf("exeucted");
+        error = read_huffman_tree();
+        if(error != 0)
+        {
+            printf("2");
+            return 1;
+        }
+     //printf("exeucted");
+        error = decompress_block();
+        if(error != 0)
+        {
+            printf("3");
+            return 1;
+        }
+    }
+    return 0;
 }
 
 /**
