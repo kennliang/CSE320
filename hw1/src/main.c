@@ -30,7 +30,6 @@ int main(int argc, char **argv)
     if((global_options & 1))
     {
         USAGE(*argv, EXIT_SUCCESS);
-        //printf("%s\n","executed");
     }
     // c flag provided
     else if(global_options & 0x2)
@@ -38,36 +37,17 @@ int main(int argc, char **argv)
         ret = compress();
         if(ret)
             return EXIT_FAILURE;
-        //printf("%s\n","executed");
-        //USAGE(*argv, EXIT_SUCCESS);
     }
     // d flag provided
     else if(global_options & 0x4)
     {
-/*
-        int number = 7;
-        unsigned int number_1 = number << 24;
-        number_1 = number_1 >> 24;
-        unsigned int number_2 = number >> 8;
-        printf("%c%c",(unsigned char)number_2,(unsigned char)number_1);
-        printf("%c%c%c%c",'a',(unsigned char)4,'n','g');
-        */
-
-
-        //read_huffman_tree();
-        //printf("exeucted");
-        //decompress_block();
-        //printf("exeucted");
-
-        //printf("exeucted");
         ret = decompress();
-        //printf("\n%d\n",ret);
         if(ret)
+        {
             return EXIT_FAILURE;
-
-        //printf("%d\n",result);
+        }
     }
-    // printf("%s\n","executed");
+    //printf("sucess");
      return EXIT_SUCCESS;
 }
 
