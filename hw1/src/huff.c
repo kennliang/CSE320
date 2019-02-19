@@ -95,7 +95,7 @@ void process_block()
     // processing the entire block
     while(*input_block != '\0')
     {
-         NODE *nodes2_array = nodes;
+        NODE *nodes2_array = nodes;
         for(i = 0 ;i < num_nodes;i++)
         {
             // the symbol already exists, increase the count
@@ -208,7 +208,7 @@ void shift(NODE min,NODE min2,int num_leaf)
     // removing and shifting from the minimum node
     for(i = 0; i < num_leaf;i++)
     {
-        if(nodes_ptr->symbol == min.symbol || found == 1)
+        if((nodes_ptr->symbol == min.symbol && nodes_ptr->weight == min.weight ) || found == 1)
         {
             nodes_ptr->weight = next->weight;
             nodes_ptr->symbol = next->symbol;
@@ -230,7 +230,7 @@ void shift(NODE min,NODE min2,int num_leaf)
     // removing and shifting from the second minimum node
     for(i = 0; i < num_leaf-1;i++)
     {
-        if(nodes_ptr->symbol == min2.symbol || found == 1)
+        if( (nodes_ptr->symbol == min2.symbol && nodes_ptr->weight == min2.weight) || found == 1)
         {
             nodes_ptr->weight = next->weight;
             nodes_ptr->symbol = next->symbol;
@@ -671,7 +671,6 @@ int read_huffman_tree()
         {
             if(i == 0)
             {
-                //printf("%d\n",c);
                 num_nodes = c;
             }
             else
@@ -774,19 +773,8 @@ int read_huffman_tree()
     return 0;
 }
 
-/**
- * @brief Reads one block of data from standard input and emits corresponding
- * compressed data to standard output.
- * @details This function reads raw binary data bytes from the standard input
- * until the specified block size has been read or until EOF is reached.
- * It then applies a data compression algorithm to the block and outputs the
- * compressed block to the standard output.  The block size parameter is
- * obtained from the global_options variable.
- *
- * @return 0 if compression completes without error, 1 if an error occurs.
- */
-int compress_block()
- {
+int build_tree()
+{
     process_block();
 
      //setting the total number of nodes our tree can have
@@ -839,6 +827,67 @@ int compress_block()
     int p = compress_output();
     if(p == 1)
         return 1;
+    return 0;
+}
+
+/**
+ * @brief Reads one block of data from standard input and emits corresponding
+ * compressed data to standard output.
+ * @details This function reads raw binary data bytes from the standard input
+ * until the specified block size has been read or until EOF is reached.
+ * It then applies a data compression algorithm to the block and outputs the
+ * compressed block to the standard output.  The block size parameter is
+ * obtained from the global_options variable.
+ *
+ * @return 0 if compression completes without error, 1 if an error occurs.
+ */
+int compress_block()
+{
+    int i = 0;
+    int c;
+    unsigned char *input_block = current_block;
+    unsigned int blocksize = global_options - 0x2;
+    blocksize = (blocksize >> 16) + 1;
+
+    if( (c = getchar()) == EOF)
+    {
+        return 1;
+    }
+    do
+    {
+        if(ferror(stdin) != 0)
+            return 1;
+        *input_block = (unsigned char)c;
+        if((i+1) == blocksize)
+        {
+            if(build_tree())
+            {
+                return 1;
+            }
+            return 0;
+        }
+        else
+        {
+            i++;
+            input_block++;
+        }
+    }while( (c = getchar()) != EOF);
+
+    if(feof(stdin) == 0)
+    {
+        return 1;
+    }
+    // partial block read in due to end of input
+    // set the end of the block NULL to indicate where to stop reading input
+    if(i != blocksize && i != 0)
+    {
+        *input_block = '\0';
+        if(build_tree())
+        {
+            return 1;
+        }
+        return 0;
+    }
     return 0;
 }
 
@@ -912,7 +961,9 @@ int decompress_block()
         unsigned char s = *(current_block+i);
         int p = printf("%c",s);
         if(p < 0)
+        {
             return 1;
+        }
     }
     return 0;
 }
@@ -930,44 +981,29 @@ int decompress_block()
  */
 int compress()
 {
-    int i = 0;
+    int end = 0;
     int c;
-    unsigned char *input_block = current_block;
-    unsigned int blocksize = global_options - 0x2;
-    blocksize = (blocksize >> 16) + 1;
-
-    //no input
-    if( (c = getchar()) == EOF)
-        return 1;
-    do
+    while(end == 0)
     {
-        if(ferror(stdin) != 0)
-            return 1;
-        *input_block = (unsigned char)c;
-        if((i+1) == blocksize)
+        if( (c = getchar()) == EOF)
         {
-            if(compress_block())
+            if(feof(stdin) == 0)
                 return 1;
-            i = 0; //reset the counter
-            input_block = current_block;
+            end = 1;
         }
         else
         {
-            i++;
-            input_block++;
+            int success = ungetc(c,stdin);
+            if(success == 1)
+            {
+                return 1;
+            }
+            success = compress_block();
+            if(success == 1)
+            {
+                return 1;
+            }
         }
-    }while( (c = getchar()) != EOF);
-
-    if(feof(stdin) == 0)
-        return 1;
-
-    // partial block read in due to end of input
-    // set the end of the block NULL to indicate where to stop reading input
-    if(i != blocksize && i != 0)
-    {
-        *input_block = '\0';
-        if(compress_block())
-            return 1;
     }
     return 0;
 }

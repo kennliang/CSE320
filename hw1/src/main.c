@@ -36,7 +36,9 @@ int main(int argc, char **argv)
     {
         ret = compress();
         if(ret)
+        {
             return EXIT_FAILURE;
+        }
     }
     // d flag provided
     else if(global_options & 0x4)
@@ -47,7 +49,6 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
     }
-    //printf("sucess");
      return EXIT_SUCCESS;
 }
 
