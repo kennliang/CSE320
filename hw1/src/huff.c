@@ -908,16 +908,36 @@ int decompress_block()
     int i;
     int c;
     int byte = 128;
+    int byte_count = 0;
     int end_block = 0;
     int count = 0;
 
     for(i = 0;  end_block == 0 && (c = getchar()) != EOF ; i++)
     {
         if(ferror(stdin) != 0)
+        {
             return 1;
-
+        }
         while(byte != 0 && end_block == 0)
         {
+            if((c & byte) != 0 && end_block == 0)
+            {
+                if(node == NULL)
+                {
+                    return 1;
+                }
+                node = node->right;
+                byte = byte >> 1;
+            }
+            else if(end_block == 0)
+            {
+                if(node == NULL)
+                {
+                    return 1;
+                }
+                node = node->left;
+                byte = byte >> 1;
+            }
             if(node->left == NULL && node->right == NULL)
             {
                 //found leaf node
@@ -932,20 +952,6 @@ int decompress_block()
                     count++;
                     node = nodes;
                 }
-            }
-            else if((c & byte) != 0)
-            {
-                if(node == NULL)
-                    return 1;
-                node = node->right;
-                byte = byte >> 1;
-            }
-            else
-            {
-                if(node == NULL)
-                    return 1;
-                node = node->left;
-                byte = byte >> 1;
             }
         }
         byte = 128;

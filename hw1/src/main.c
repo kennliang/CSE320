@@ -24,7 +24,6 @@ int main(int argc, char **argv)
     {
         USAGE(*argv, EXIT_FAILURE);
     }
-    debug("Options: 0x%x", global_options);
 
     // h flag provided
     if((global_options & 1))
@@ -49,6 +48,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
     }
+    //debug("Options: 0x%x", global_options);
      return EXIT_SUCCESS;
 }
 
