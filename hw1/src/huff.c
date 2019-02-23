@@ -991,24 +991,14 @@ int compress()
     int c;
     while(end == 0)
     {
-        if( (c = getchar()) == EOF)
+        int success = compress_block();
+        if(success == 1)
         {
             if(feof(stdin) == 0)
                 return 1;
+            if(ferror(stdin) != 0)
+                return 1;
             end = 1;
-        }
-        else
-        {
-            int success = ungetc(c,stdin);
-            if(success == 1)
-            {
-                return 1;
-            }
-            success = compress_block();
-            if(success == 1)
-            {
-                return 1;
-            }
         }
     }
     return 0;

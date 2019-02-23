@@ -43,6 +43,7 @@ int main(int argc, char **argv)
     else if(global_options & 0x4)
     {
         ret = decompress();
+
         if(ret)
         {
             return EXIT_FAILURE;
