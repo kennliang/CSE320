@@ -24,7 +24,7 @@
 /*
  * The smallest block size that may be specified by the user.
  */
-#define MIN_BLOCK_SIZE (1024)
+#define MIN_BLOCK_SIZE (2)
 
 /*
  * The largest block size that may be specified by the user.
