@@ -31,6 +31,7 @@ int generate_index;
 char **selected_individuals;
 struct node head;
 
+//d
 void free_hook(void *hooky)
 {
 
