@@ -18,7 +18,7 @@ extern int total_submitters;
  * Flag controlling capitalization of surnames
  */
 
-int capitalization;
+int capitalization ;
 
 /*
  * Arrays for each access to top-level records

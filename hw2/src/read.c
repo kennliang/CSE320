@@ -43,7 +43,6 @@ read_gedcom(FILE *f, struct node *prev, int level)
   struct node *node = NULL;
   struct tag *tp;
   int size;
-
   while(prev && (line = fgetln(f, &size))) {
     gedcom_lines++;
     /*
@@ -81,9 +80,10 @@ read_gedcom(FILE *f, struct node *prev, int level)
       rest++;
     if(*rest != ' ') {
       fprintf(stderr, "%s: %ld: Malformed GEDCOM line ignored\n",
-	      current_gedcom, current_lineno);                                                           //Added %ld instead %d
+	      current_gedcom, current_lineno);
       free(node);
       free(node->line);
+
       continue;
     }
     *rest++ = '\0';
@@ -95,7 +95,7 @@ read_gedcom(FILE *f, struct node *prev, int level)
       rest++;
     if(*rest == '\0') {
       fprintf(stderr, "%s: %ld: Malformed GEDCOM line ignored\n",
-	      current_gedcom, current_lineno);                                                          //Added %ld instead %d
+	      current_gedcom, current_lineno);
       free(node->line);
       free(node);
       continue;
@@ -106,7 +106,7 @@ read_gedcom(FILE *f, struct node *prev, int level)
 	rest++;
       if(*rest != '@') {
 	fprintf(stderr, "%s: %ld: Non-terminated cross-reference -- line ignored\n",
-		current_gedcom, current_lineno);                                                                 //Added %ld instead %d
+		current_gedcom, current_lineno);
 	free(node->line);
 	free(node);
 	continue;
@@ -123,7 +123,7 @@ read_gedcom(FILE *f, struct node *prev, int level)
       rest++;
     if(*rest == '\0') {
       fprintf(stderr, "%s: %ld: Ignored GEDCOM line with no tag\n",
-	      current_gedcom, current_lineno);                                                          //Added %ld instead %d
+	      current_gedcom, current_lineno);
       free(node->line);
       free(node);
       continue;
@@ -133,7 +133,7 @@ read_gedcom(FILE *f, struct node *prev, int level)
       rest++;
     if(*rest)
       *rest++ = '\0';
-    if((tp = findtag(tagp, gedcom_tags, gedcom_tags_size)))                                // added () to make statement true
+    if((tp = findtag(tagp, gedcom_tags, gedcom_tags_size)))
       node->tag = tp;
     while(*rest == ' ')
       rest++;
@@ -151,12 +151,12 @@ read_gedcom(FILE *f, struct node *prev, int level)
     } else {
       if(node->level > level+1)
 	fprintf(stderr, "%s: %ld: Level number increased by more than one\n",
-		current_gedcom, current_lineno);                                                       //Added %ld instead %d
+		current_gedcom, current_lineno);
       prev->children = node;
       node = read_gedcom(f, node, node->level);
       if(node == NULL) {
 	fprintf(stderr, "%s: %ld GEDCOM file does not end at level 0\n",
-		current_gedcom, current_lineno);                                                                   //Added %ld instead %d
+		current_gedcom, current_lineno);
 	return(NULL);
       }
       if(node->level < level)
@@ -170,7 +170,7 @@ read_gedcom(FILE *f, struct node *prev, int level)
       out_of_memory();
     else
       fprintf(stderr, "%s: %ld: Error reading GEDCOM file\n",
-	      current_gedcom, current_lineno);                                                                    //Added %ld instead %d
+	      current_gedcom, current_lineno);
   }
   return(NULL);
 }

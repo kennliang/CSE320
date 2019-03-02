@@ -31,12 +31,31 @@ int generate_index;
 char **selected_individuals;
 struct node head;
 
-int main(int argc, char *argv[])                                        // added int as return type
+void free_hook(void *hooky)
 {
-  struct node *np;
+
+}
+
+void free_memory(struct node *head)
+{
+  if(head == NULL)
+    return;
+  free_memory(head->children);
+  free_memory(head->siblings);
+
+  free_hook(head->hook);
+  free(head);
+}
+
+
+
+int main(int argc, char *argv[])
+{
+  struct node *np = NULL;
   int i, optc;
   extern char *optarg;
   extern int optind;
+
   FILE *gedcom_file;
   int serial = 0;
 #ifdef MSDOS
@@ -44,8 +63,8 @@ int main(int argc, char *argv[])                                        // added
   extern char *optarg;
   extern int optind;
 #endif
-
   validate_tags_tables();
+
 #ifdef MSDOS
   if(argc <= 1) {
 #ifdef MSWINDOWS
@@ -57,10 +76,17 @@ int main(int argc, char *argv[])                                        // added
     exit(1);
   }
 #endif
+
+
   while((optc = getopt(argc, argv, "Hviscd:u:h:f:t:T:")) != -1) {
     FILE *tempf;
     long size;
+
+    // maybe change to int c??
     char *temps, *tempe, c;
+
+
+    printf("executed");
 
     switch(optc) {
     case 'v':	/* Version */
@@ -89,6 +115,8 @@ int main(int argc, char *argv[])                                        // added
       break;
     case 't':	/* Template file for individuals */
     case 'T':	/* Template file for the index */
+
+
       if((tempf = fopen(optarg, "r")) == NULL) {
 	fprintf(stderr, "Can't open template file '%s'\n", optarg);
 	break;
@@ -133,6 +161,7 @@ int main(int argc, char *argv[])                                        // added
       exit(1);
     }
   }
+;
   if(optind == argc) {
     current_gedcom = "stdin";
     current_lineno = 0;
@@ -155,9 +184,16 @@ int main(int argc, char *argv[])                                        // added
     fprintf(stderr, "No valid GEDCOM lines found\n");
     exit(1);
   }
+
+
+  //seg fault here
+
+
   process_records(head.siblings);
+
+
   link_records(head.siblings);
-  fprintf(stderr, "Processed %ld GEDCOM lines", gedcom_lines);                                   // added %ld instead of %d
+  fprintf(stderr, "Processed %ld GEDCOM lines", gedcom_lines);
   if(total_individuals)
     fprintf(stderr, ", %d individuals", total_individuals);
   if(total_families)
@@ -192,30 +228,45 @@ int main(int argc, char *argv[])                                        // added
   /*
    * Output individuals
    */
-  if(individual_template == NULL) {
+  if(individual_template == NULL)
+   {
     int size = 0;
-    if(max_per_directory) {
+    if(max_per_directory)
+     {
       for(i = 0; i < individual_template_subdir_size; i++)
-	size += strlen(individual_template_subdir[i]);
+      	size = size + strlen(individual_template_subdir[i]);
+
+      // Adding +1 to size for malloc to store null terminator!
       if((individual_template = malloc(size+1)) == NULL)
-	out_of_memory();
+	       out_of_memory();
       *individual_template = '\0';
       for(i = 0; i < individual_template_subdir_size; i++)
-	strcat(individual_template, individual_template_subdir[i]);
-    } else {
+	         strcat(individual_template, individual_template_subdir[i]);
+      }
+    else
+     {
       for(i = 0; i < individual_template_nosubdir_size; i++)
-	size += strlen(individual_template_nosubdir[i]);
+	       size = size + strlen(individual_template_nosubdir[i]);
       if((individual_template = malloc(size+1)) == NULL)
-	out_of_memory();
-      *individual_template = '\0';
+	       out_of_memory();
+     *individual_template = '\0';
       for(i = 0; i < individual_template_nosubdir_size; i++)
-	strcat(individual_template, individual_template_nosubdir[i]);
+	       strcat(individual_template, individual_template_nosubdir[i]);
     }
   }
   for(i = 0; i < total_individuals; i++) {
     if(all_individuals[i]->serial)
       output_individual(all_individuals[i]);
   }
-  exit(0);
 
+  free(individual_template);
+ // free(output_individual);
+  free(selected_individuals);
+  //free(head.siblings)
+
+
+ free_memory(&head);
+
+
+  exit(0);
 }

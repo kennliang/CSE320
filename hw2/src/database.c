@@ -15,13 +15,13 @@
  * Counts of various kinds of top-level records
  */
 
-int total_individuals;
-int total_families;
-int total_events;
-int total_sources;
-int total_notes;
-int total_repositories;
-int total_submitters;
+int total_individuals = 0;
+int total_families = 0;
+int total_events = 0;
+int total_sources = 0;
+int total_notes = 0;
+int total_repositories = 0;
+int total_submitters = 0;
 
 /*
  * Arrays for each access to top-level records
@@ -42,7 +42,8 @@ process_records(struct node *np)
   for( ; np != NULL; np = np->siblings) {
     if(np->tag == NULL)
       continue;
-    switch(np->tag->value) {
+    switch(np->tag->value)
+    {
     case INDI:
       total_individuals++;
       process_individual_record(np);
@@ -81,56 +82,57 @@ process_records(struct node *np)
 void
 process_individual_record(struct node *np)
 {
-  struct individual_record *ip;
-  struct note_structure *ntp;
-  struct xref *xp;
+  struct individual_record *ip = NULL;
+  struct note_structure *ntp = NULL;
+  struct xref *xp = NULL;
 
   if((ip = malloc(sizeof(*ip))) == NULL)
     out_of_memory();
 
-
-
-
-  // ADDED MEMSET TO FIX UNITIALIZED ERROR
-  memset(ip,0,sizeof(*ip));
-
-
-
+ //fixed segmentation fault
+   memset(ip, 0, sizeof(*ip));
 
 
   np->hook = ip;
   ip->xref = np->xref;
   index_enter(ip->xref, ip);
-  for(np = np->children ; np != NULL; np = np->siblings) {
-    switch(np->tag->value) {
+  for(np = np->children ; np != NULL; np = np->siblings)
+  {
+    if(np->tag == NULL)
+      continue;
+    switch(np->tag->value)
+    {
     case NAME:
       ip->personal_name = process_name(np);
       break;
     case FAMS:
       xp = process_xref(np);
       if(ip->fams == NULL)
-	ip->fams = ip->lastfams = xp;
-      else {
-	ip->lastfams->next = xp;
-	ip->lastfams = xp;
+	       ip->fams = ip->lastfams = xp;
+      else
+      {
+	       ip->lastfams->next = xp;
+	       ip->lastfams = xp;
       }
       break;
     case FAMC:
       xp = process_xref(np);
       if(ip->famc == NULL)
-	ip->famc = ip->lastfamc = xp;
-      else {
-	ip->lastfamc->next = xp;
-	ip->lastfamc = xp;
+	       ip->famc = ip->lastfamc = xp;
+      else
+      {
+	       ip->lastfamc->next = xp;
+	       ip->lastfamc = xp;
       }
       break;
     case SOUR:
       xp = process_xref(np);
       if(ip->sources == NULL)
-	ip->sources = ip->lastsource = xp;
-      else {
-	ip->sources->next = xp;
-	ip->lastsource = xp;
+	       ip->sources = ip->lastsource = xp;
+      else
+      {
+	       ip->sources->next = xp;
+	       ip->lastsource = xp;
       }
       break;
     case REFN:
@@ -145,20 +147,21 @@ process_individual_record(struct node *np)
     case NOTE:
       ntp = process_note(np);
       if(ip->notes == NULL)
-	ip->notes = ip->lastnote = ntp;
-      else {
-	ip->lastnote->next = ntp;
-	ip->lastnote = ntp;
-      }
+	       ip->notes = ip->lastnote = ntp;
+      else
+       {
+	         ip->lastnote->next = ntp;
+	         ip->lastnote = ntp;
+       }
       break;
     case TITL:
       ip->title = np->rest;
       break;
     case SEX:
       if(*np->rest == 'M')
-	ip->sex = 'M';
+	       ip->sex = 'M';
       else if(*np->rest == 'F')
-	ip->sex = 'F';
+	       ip->sex = 'F';
       break;
     case CENS: case MARR: case MARB: case MARC: case MARL: case MARS:
     case ENGA: case BAPM: case BARM: case BASM: case BIRT: case BLES:
@@ -166,10 +169,13 @@ process_individual_record(struct node *np)
     case GRAD: case IMMI: case NATU: case ORDN: case RETI: case PROB:
     case WILL: case ANUL: case DIV: case DIVF:
       if(ip->events == NULL)
-	ip->events = ip->lastevent = process_event(np);
-      else {
-	ip->lastevent->next = process_event(np);
-	ip->lastevent = ip->lastevent->next;
+	      ip->events = ip->lastevent = process_event(np);
+      else
+      {
+        // ip is a pointer to a struct individual_records pointing to a struct event_structure pointing to a struct event_structure
+
+	      ip->lastevent->next = process_event(np);
+	      ip->lastevent = process_event(np);
       }
       break;
     default:
@@ -182,9 +188,10 @@ process_individual_record(struct node *np)
 void
 process_family_record(struct node *np)
 {
-  struct family_record *frp;
-  struct note_structure *ntp;
-  struct xref *xp;
+  struct family_record *frp = NULL;
+  struct note_structure *ntp = NULL;
+  struct xref *xp = NULL;
+
 
   if((frp = malloc(sizeof(*frp))) == NULL)
     out_of_memory();
@@ -254,8 +261,8 @@ process_family_record(struct node *np)
 void
 process_source_record(struct node *np)
 {
-  struct source_record *sp;
-  struct continuation *cp;
+  struct source_record *sp = NULL;
+  struct continuation *cp = NULL;
   int cont = 0;
 
   if((sp = malloc(sizeof(*sp))) == NULL)
@@ -274,10 +281,13 @@ process_source_record(struct node *np)
 	cont++;
 	if((sp->cont = malloc(sizeof(*sp->cont))) == NULL)
 	  out_of_memory();
+
+  memset(sp->cont, 0, sizeof(*sp->cont));
 	cp = sp->cont;
       } else {
 	if((cp->next = malloc(sizeof(*cp->next))) == NULL)
 	  out_of_memory();
+  memset(cp->next, 0, sizeof(*cp->next));
 	cp = cp->next;
       }
       memset(cp, 0, sizeof(*cp));
@@ -315,8 +325,8 @@ process_submitter_record(struct node *np)
 struct event_structure *
 process_event(struct node *np)
 {
-  struct event_structure *ep;
-  struct place_structure *pp;
+  struct event_structure *ep = NULL;
+  struct place_structure *pp = NULL;
 
   if((ep = malloc(sizeof(*ep))) == NULL)
     out_of_memory();
@@ -347,8 +357,8 @@ process_event(struct node *np)
 struct note_structure *
 process_note(struct node *np)
 {
-  struct note_structure *ntp;
-  struct continuation *ntpc;
+  struct note_structure *ntp = NULL;
+  struct continuation *ntpc = NULL;
   int cont = 0;
 
   if((ntp = malloc(sizeof(*ntp))) == NULL)
@@ -385,7 +395,7 @@ process_note(struct node *np)
 struct xref *
 process_xref(struct node *np)
 {
-  struct xref *xp;
+  struct xref *xp = NULL;
 
   extract_xref(np);
   if((xp = malloc(sizeof(*xp))) == NULL)
@@ -400,11 +410,12 @@ process_name(struct node *np)
 {
   char *cp, *p;
   int i, surname=0;
-  struct name_structure *nsp;
+  struct name_structure *nsp = NULL;
 
   for(i = 0, cp = np->rest; *cp != '\0'; cp++, i++);
   if((p = malloc(i+1)) == NULL)
     out_of_memory();
+  memset(p,0,sizeof(*p));
   if((nsp = malloc(sizeof(*nsp))) == NULL)
     out_of_memory();
   memset(nsp, 0, sizeof(*nsp));
@@ -436,16 +447,18 @@ process_name(struct node *np)
 void
 link_records(struct node *np)
 {
-  struct individual_record **ip;
-  struct family_record **fp;
+  struct individual_record **ip = NULL;
+  struct family_record **fp = NULL;
   int i;
 
-  if((ip = all_individuals = malloc(total_individuals *
-			   sizeof(struct individual_record **))) == NULL)
+  if((ip = all_individuals = malloc(total_individuals * sizeof(struct individual_record **))) == NULL)
     out_of_memory();
-  if((fp = all_families = malloc(total_families *
-			   sizeof(struct family_record **))) == NULL)
+
+  memset(ip,0,sizeof(*ip));
+  if((fp = all_families = malloc(total_families * sizeof(struct family_record **))) == NULL)
     out_of_memory();
+
+  memset(fp,0,sizeof(*fp));
   for( ; np != NULL; np = np->siblings) {
     if(np->tag == NULL)
       continue;
@@ -468,9 +481,7 @@ link_records(struct node *np)
       break;
     }
   }
-  qsort(all_individuals, total_individuals,
-	sizeof(struct individual_record *),
-	(int (*)(const void *, const void *)) compare_name);
+  qsort(all_individuals, total_individuals,sizeof(struct individual_record * ),(int (*)(const void *, const void *)) compare_name);
   /*
    * Link individuals for the benefit of the output interpreter
    */
@@ -482,8 +493,8 @@ link_records(struct node *np)
 void
 link_individual_record(struct node *np)
 {
-  struct individual_record *ip;
-  struct xref *xp;
+  struct individual_record *ip = NULL;
+  struct xref *xp = NULL;
 
   ip = (struct individual_record *)np->hook;
   for(xp = ip->fams; xp != NULL; xp = xp->next)
@@ -497,13 +508,13 @@ link_individual_record(struct node *np)
 void
 link_family_record(struct node *np)
 {
-  struct family_record *fp;
-  struct xref *xp;
+  struct family_record *fp = NULL;
+  struct xref *xp = NULL;
 
   fp = (struct family_record *)np->hook;
-  if((xp = fp->husband))                                                               //added () to make statement true
+  if((xp = fp->husband))
     xp->pointer.family = index_find(xp->id);
-  if((xp = fp->wife))                                                                   //added () to make statement true
+  if((xp = fp->wife))
     xp->pointer.family = index_find(xp->id);
   for(xp = fp->children; xp != NULL; xp = xp->next)
     xp->pointer.individual = index_find(xp->id);

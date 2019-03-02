@@ -39,8 +39,10 @@ int index_enter(char *id, void *value)
   struct ientry *ip, *pip, *new;
 
   h = hash(id);
-  for(ip = hashtab[h], pip = NULL; ip != NULL; pip = ip, ip = ip->next) {
-    if(!strcmp(ip->id, id)) {
+  for(ip = hashtab[h], pip = NULL; ip != NULL; pip = ip, ip = ip->next)
+  {
+    if(!strcmp(ip->id, id))
+     {
       fprintf(stderr, "Multiply defined cross-reference ID: %s\n", id);
       return(-1);
     }
@@ -50,12 +52,16 @@ int index_enter(char *id, void *value)
   new->id = strdup(id);
   new->value = value;
   new->next = NULL;
-  if(pip == NULL) {
+  if(pip == NULL)
+  {
     hashtab[h] = new;
-  } else {
+  }
+  else
+  {
     pip->next = new;
   }
-  return 0;                                                                      // returned an int to meet function requirements
+  // added 0 to fix compile issues. figure out what it should return later
+  return 0;
 }
 
 void *index_find(char *id)

@@ -154,8 +154,7 @@ char *individual_template_subdir[] =
   "</HTML>\n"
   };
 
-int individual_template_subdir_size =
-  sizeof(individual_template_subdir)/sizeof(char *);
+int individual_template_subdir_size = sizeof(individual_template_subdir)/sizeof(char *);
 
 char *individual_template_nosubdir[] =
 {
@@ -370,7 +369,7 @@ void output_individual(struct individual_record *rt)
     mkdir(path, 0777);
     strcat(path, "/");
   } else {
-    sprintf(path, "%s", "");                                                    //Added %S
+    sprintf(path,"%s", "");
   }
   sprintf(url, file_template, rt->xref);
   strcat(path, url);
@@ -442,10 +441,10 @@ void interpret(FILE *ofile)
 	if(current_type == T_STRING) {
 	  fprintf(ofile, "%s", current_value.string);
 	} else if(current_type == T_URL) {
-	  fprintf(ofile, "%s", current_value.url);                                              //Added %S
+	  fprintf(ofile,"%s" ,current_value.url);
 	} else if(current_type == T_INTEGER) {
 	  /* Integer variables start from 1 */
-	  fprintf(ofile, "%d", current_value.integer +1);
+	  fprintf(ofile, "%d", current_value.integer + 1);
 	} else {
 	  output_error("Attempt to output something not an integer or string");
 	}
@@ -464,11 +463,15 @@ void interpret(FILE *ofile)
  * After having seen the initial $, interpret a simple or compound variable.
  */
 
+
 void variable(FILE *ofile)
 {
-  char c, *selector;
+  char c ;
+  char *selector = NULL;
   int braces = 0;
   int first = 1;
+
+
   /*
    * $$ means output a single $
    */
@@ -898,27 +901,33 @@ void xref_select(char *field)
 
 void command(FILE *ofile)
 {
-  char *buf;
+  char *buf = NULL;
   char *start = template++;
+
 
   collect_identifier(&buf);
   skip_white_space();
-  if(!strcmp(buf, "RESET")) {
+  if(!strcmp(buf, "RESET"))
+   {
     collect_identifier(&buf);
     if(*template == '\n')
       template++;
-    else {
+    else
+    {
       output_error("Newline expected");
     }
     set_variable(buf, 0);
-  } else if(!strcmp(buf, "INCREMENT")) {
+  }
+   else if(!strcmp(buf, "INCREMENT"))
+  {
     collect_identifier(&buf);
     if(*template == '\n')
       template++;
-    else {
+    else
+    {
       output_error("Newline expected");
     }
-    set_variable(buf, get_variable(buf));
+    set_variable(buf, get_variable(buf)+1);
   } else if(!strcmp(buf, "IF")) {
     variable(ofile);
     if(*template == '\n') {
@@ -1066,19 +1075,24 @@ struct binding {
   char *name;
   int value;
   struct binding *next;
-} *environment;
+}*environment;
 
 void set_variable(char *name, int value)
 {
   struct binding *b;
-  for(b = environment; b != NULL; b = b->next) {
-    if(!strcmp(name, b->name)) {
-      b->value = value;
-      return;
-    }
+
+  for(b = environment; b != NULL; b = b->next)
+   {
+     if(!strcmp(name, b->name))
+     {
+       b->value = value;
+        return;
+      }
   }
-  if((b = malloc(sizeof(struct binding))) == NULL)
+
+  if((b = malloc(sizeof(struct binding ))) == NULL)
     out_of_memory();
+  memset(b,0,sizeof(struct binding));
   b->name = strdup(name);
   b->value = value;
   b->next = environment;
@@ -1088,9 +1102,14 @@ void set_variable(char *name, int value)
 int get_variable(char *name)
 {
   struct binding *b;
-  for(b = environment; b != NULL; b = b->next) {
-    if(!strcmp(name, b->name))
-      return(b->value);
+
+  for(b = environment; b != NULL ; b = b->next)
+  {
+
+      if(!strcmp(name, b->name))
+      {
+        return(b->value);
+      }
   }
   set_variable(name, 0);
   return(0);
@@ -1119,7 +1138,7 @@ void construct_url(char *dest, struct individual_record *indiv)
       sprintf(dest, "../");
     sprintf(url, "D%07d/", indiv->serial / max_per_directory);
   } else {
-    sprintf(url, "%s", "");                                                        //Added %S
+    sprintf(url, "%s","");
   }
   strcat(dest, url);
   sprintf(url, url_template, indiv->xref);

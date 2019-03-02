@@ -277,7 +277,7 @@ extern int default_language;
 struct tag {
   char *name;		   /* Name recognized by parser */
   int value;		   /* Internal code */
-  char *pname[LANGUAGES];  /* Print names */
+  char *pname[LANGUAGES]; /* Print names */
 };
 
 /*
