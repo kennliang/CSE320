@@ -10,7 +10,6 @@
 #include "tags.h"
 #include<unistd.h>
 
-
 #define VERSION "2.1 (17 April 1995)"
 #define USAGE "Usage: %s [-Hciv][-d <max-per-directory>][-s <individual> ...][-u <URL template>][-f <file-template>][-t <individual-template>][-T <index-template>] [-- <gedcom-file> ...]\n", argv[0]
 #define OPTIONS " -v\t\t\tPrint version information.\n" \
@@ -89,7 +88,7 @@ int change_directory = 0;
 char *string_directory = NULL;
 
 // does s have arguments?
-  while((optc = getopt_long(argc, argv, "Hvis:cd:u:h:f:t:T:",long_options,&options_index)) != -1)
+  while((optc = getopt_long(argc, argv, "Hviscd:u:h:f:t:T:",long_options,&options_index)) != -1)
   {
     FILE *tempf;
     long size;
@@ -280,7 +279,6 @@ char *string_directory = NULL;
 	         strcat(individual_template, individual_template_subdir[i]);
 
       }
-
     else
      {
       for(i = 0; i < individual_template_nosubdir_size; i++)
@@ -296,7 +294,5 @@ char *string_directory = NULL;
     if(all_individuals[i]->serial)
       output_individual(all_individuals[i]);
   }
-
-
   exit(0);
 }

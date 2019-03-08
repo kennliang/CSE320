@@ -639,6 +639,7 @@ void variable(FILE *ofile)
     return;
       }
       if(!skipping) {
+        //skipping--;
   switch(current_type) {
   case T_INTEGER:
   case T_STRING:
@@ -909,8 +910,6 @@ void command(FILE *ofile)
 {
   char *buf = NULL;
 
-
-
   char *start = template++;
 
   collect_identifier(&buf);
@@ -1153,7 +1152,7 @@ void construct_url(char *dest, struct individual_record *indiv)
     {
       sprintf(url,"%s", "");
     }
-   strcat(dest, url);
+    strcat(dest, url);
     sprintf(url, url_template, indiv->xref);
     strcat(dest, url);
 
