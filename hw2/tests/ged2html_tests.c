@@ -1,8 +1,5 @@
 #include <stdio.h>
 #include <criterion/criterion.h>
-#include <sys/types.h>
-
-#include  <sys/wait.h>
 
 #define TESTALL_FILE "tests/rsrc/testall.ged"
 #define ROYAL92_FILE "tests/rsrc/royal92.ged"
