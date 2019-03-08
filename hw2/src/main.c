@@ -8,6 +8,8 @@
 #include "database.h"
 #include "output.h"
 #include "tags.h"
+#include<unistd.h>
+
 
 #define VERSION "2.1 (17 April 1995)"
 #define USAGE "Usage: %s [-Hciv][-d <max-per-directory>][-s <individual> ...][-u <URL template>][-f <file-template>][-t <individual-template>][-T <index-template>] [-- <gedcom-file> ...]\n", argv[0]
@@ -31,27 +33,28 @@ int generate_index;
 char **selected_individuals;
 struct node head;
 
-//d
-void free_hook(void *hooky)
+
+struct option long_options[] =
 {
-
-}
-
-void free_memory(struct node *head)
-{
-  if(head == NULL)
-    return;
-  free_memory(head->children);
-  free_memory(head->siblings);
-
-  free_hook(head->hook);
-  free(head);
-}
+  {"help",no_argument,0,'H'},
+  {"version",no_argument,0,'v'},
+  {"index",no_argument,0,'i'},
+  {"select",required_argument,0,'s'},
+  {"no-surname-caps",no_argument,0,'c'},
+  {"individual-template",required_argument,0,'t'},
+  {"index-template",required_argument,0,'T'},
+  {"files-per-directory",required_argument,0,'d'},
+  {"url-template",required_argument,0,'u'},
+  {"filename-template",required_argument,0,'f'},
+  {"change-directory",required_argument,0,'n'},
+  {0, 0, 0, 0},
+};
 
 
 
 int main(int argc, char *argv[])
 {
+
   struct node *np = NULL;
   int i, optc;
   extern char *optarg;
@@ -79,17 +82,29 @@ int main(int argc, char *argv[])
 #endif
 
 
-  while((optc = getopt(argc, argv, "Hviscd:u:h:f:t:T:")) != -1) {
+int options_index = 0;
+
+int change_directory = 0;
+
+char *string_directory = NULL;
+
+// does s have arguments?
+  while((optc = getopt_long(argc, argv, "Hvis:cd:u:h:f:t:T:",long_options,&options_index)) != -1)
+  {
     FILE *tempf;
     long size;
 
     // maybe change to int c??
-    char *temps, *tempe, c;
-
-
-    printf("executed");
+    char *temps, *tempe;
+    int c;
 
     switch(optc) {
+
+    case 'n':
+    change_directory = 1;
+    string_directory = optarg;
+    break;
+
     case 'v':	/* Version */
       printf("GEDCOM to HTML translator, version %s by Gene Stark "
 	     "(stark@cs.sunysb.edu)\n", VERSION);
@@ -102,47 +117,51 @@ int main(int argc, char *argv[])
       break;
     case 's':	/* Generate record(s) for selected individual(s) */
       {
-	int i = 0;
-	int j;
-	while(argv[optind+i] && argv[optind+i][0] != '-')
-	  i++;
-	if(!(selected_individuals = malloc((i+1) * sizeof(char *))))
-	  out_of_memory();
-	for (j = 0; j < i; j++)
-	  selected_individuals[j] = argv[optind+j];
-	selected_individuals[j]=NULL;
-	optind += i;
+	      int i = 0;
+	      int j;
+      	while(argv[optind+i] && argv[optind+i][0] != '-')
+      	  i++;
+      	if(!(selected_individuals = malloc((i+1) * sizeof(char *))))
+      	  out_of_memory();
+      	for (j = 0; j < i; j++)
+      	  selected_individuals[j] = argv[optind+j];
+      	selected_individuals[j]=NULL;
+      	optind += i;
       }
       break;
     case 't':	/* Template file for individuals */
     case 'T':	/* Template file for the index */
 
-
-      if((tempf = fopen(optarg, "r")) == NULL) {
-	fprintf(stderr, "Can't open template file '%s'\n", optarg);
-	break;
+      if((tempf = fopen(optarg, "r")) == NULL)
+      {
+	      fprintf(stderr, "Can't open template file '%s'\n", optarg);
+	      break;
       }
-      if(fseek(tempf, 0L, SEEK_END) == -1 || (size = ftell(tempf)) == -1){
-	fprintf(stderr, "Can't determine length of template file '%s'\n",
-		optarg);
-	fclose(tempf);
-	break;
+      if(fseek(tempf, 0L, SEEK_END) == -1 || (size = ftell(tempf)) == -1)
+      {
+      	fprintf(stderr, "Can't determine length of template file '%s'\n",optarg);
+      	fclose(tempf);
+	      break;
       }
       rewind(tempf);
-      if((temps = malloc((size_t) size+1)) == NULL) {
-	fprintf(stderr, "Can't allocate memory for template string\n");
-	fclose(tempf);
-	break;
+      if((temps = malloc((size_t) size+1)) == NULL)
+      {
+      	fprintf(stderr, "Can't allocate memory for template string\n");
+      	fclose(tempf);
+      	break;
       }
       tempe = temps;
       while((c = fgetc(tempf)) != EOF && tempe-temps <= size)
-	*tempe++ = c;
+      {
+	      *tempe++ = c;
+      }
       *tempe = '\0';
       if(optc == 't')
-	individual_template = temps;
+	      individual_template = temps;
       else
-	index_template = temps;
+	      index_template = temps;
       break;
+
     case 'd':	/* Specify max per directory */
       max_per_directory = atoi(optarg);
       break;
@@ -162,23 +181,28 @@ int main(int argc, char *argv[])
       exit(1);
     }
   }
-;
-  if(optind == argc) {
+
+  if(optind == argc)
+   {
     current_gedcom = "stdin";
     current_lineno = 0;
     read_gedcom(stdin, &head, 0);
-  } else {
-    for(np = &head ; optind < argc; optind++) {
+  }
+  else
+  {
+    for(np = &head ; optind < argc; optind++)
+    {
       current_gedcom = argv[optind];
       current_lineno = 0;
-      if((gedcom_file = fopen(argv[optind], "r")) == NULL) {
-	fprintf(stderr, "Can't open GEDCOM file '%s'.\n", argv[optind]);
-	continue;
+      if((gedcom_file = fopen(argv[optind], "r")) == NULL)
+       {
+	     fprintf(stderr, "Can't open GEDCOM file '%s'.\n", argv[optind]);
+	      continue;
       }
       read_gedcom(gedcom_file, np, 0);
       fclose(gedcom_file);
-      while(np->siblings)
-	np = np->siblings;
+     while(np->siblings)
+	       np = np->siblings;
     }
   }
   if(head.siblings == NULL) {
@@ -221,6 +245,17 @@ int main(int argc, char *argv[])
       all_individuals[i]->serial = ++serial;
     }
   }
+
+
+  if(change_directory == 1)
+  {
+    if(chdir(string_directory) != 0)
+    {
+
+      fprintf(stderr,"Changing directory has failed!");
+      return EXIT_FAILURE;
+    }
+  }
   /*
    * Generate index file
    */
@@ -231,42 +266,36 @@ int main(int argc, char *argv[])
    */
   if(individual_template == NULL)
    {
-    int size = 0;
+    int size = 1;
     if(max_per_directory)
      {
       for(i = 0; i < individual_template_subdir_size; i++)
       	size = size + strlen(individual_template_subdir[i]);
 
       // Adding +1 to size for malloc to store null terminator!
-      if((individual_template = malloc(size+1)) == NULL)
+      if((individual_template = malloc(size)) == NULL)
 	       out_of_memory();
       *individual_template = '\0';
       for(i = 0; i < individual_template_subdir_size; i++)
 	         strcat(individual_template, individual_template_subdir[i]);
+
       }
+
     else
      {
       for(i = 0; i < individual_template_nosubdir_size; i++)
 	       size = size + strlen(individual_template_nosubdir[i]);
-      if((individual_template = malloc(size+1)) == NULL)
+      if((individual_template = malloc(size)) == NULL)
 	       out_of_memory();
      *individual_template = '\0';
       for(i = 0; i < individual_template_nosubdir_size; i++)
 	       strcat(individual_template, individual_template_nosubdir[i]);
     }
   }
-  for(i = 0; i < total_individuals; i++) {
+  for(i = 0; i < total_individuals-1; i++) {
     if(all_individuals[i]->serial)
       output_individual(all_individuals[i]);
   }
-
-  free(individual_template);
- // free(output_individual);
-  free(selected_individuals);
-  //free(head.siblings)
-
-
- free_memory(&head);
 
 
   exit(0);

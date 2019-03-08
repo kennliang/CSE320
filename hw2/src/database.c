@@ -27,8 +27,8 @@ int total_submitters = 0;
  * Arrays for each access to top-level records
  */
 
-struct individual_record **all_individuals;
-struct family_record **all_families;
+struct individual_record **all_individuals = NULL;
+struct family_record **all_families = NULL;
 
 void extract_xref(struct node *np);
 
@@ -98,8 +98,14 @@ process_individual_record(struct node *np)
   index_enter(ip->xref, ip);
   for(np = np->children ; np != NULL; np = np->siblings)
   {
+
+
+    // ADDED tag check to see if it is NULL)
     if(np->tag == NULL)
       continue;
+
+
+
     switch(np->tag->value)
     {
     case NAME:
@@ -183,6 +189,7 @@ process_individual_record(struct node *np)
       break;
     }
   }
+
 }
 
 void
@@ -419,6 +426,11 @@ process_name(struct node *np)
   if((nsp = malloc(sizeof(*nsp))) == NULL)
     out_of_memory();
   memset(nsp, 0, sizeof(*nsp));
+
+//ADDED HOOK TO FIX MEMORY LEAK
+  np->hook = nsp;
+
+
   nsp->name = p;
   for(i = 0, cp = np->rest; *cp != '\0'; cp++, i++) {
     if(*cp == '/') {
@@ -437,6 +449,8 @@ process_name(struct node *np)
     }
   }
   *p = '\0';
+
+
   return(nsp);
 }
 

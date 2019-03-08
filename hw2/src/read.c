@@ -10,6 +10,7 @@
 #include "read.h"
 #include "tags.h"
 
+
 long gedcom_lines;
 long current_lineno;
 char *current_gedcom;
@@ -21,11 +22,11 @@ char *fgetln(FILE *f, int *size);
 struct node *
 newnode()
 {
-  struct node *n;
+  static struct node *n;
   if((n = malloc(sizeof(*n))) == NULL)
     out_of_memory();
   memset(n, 0, sizeof(*n));
-  return(n);
+  return (n);
 }
 
 /*
@@ -36,36 +37,56 @@ newnode()
  * prev is a pointer to the previous sibling at the current level
  */
 
+
 struct node *
 read_gedcom(FILE *f, struct node *prev, int level)
 {
+
   char *line, *rest, *levp, *xrefp, *tagp;
-  struct node *node = NULL;
+  struct node *node;
   struct tag *tp;
-  int size;
-  while(prev && (line = fgetln(f, &size))) {
+
+
+
+
+  int size = 0;
+  while(prev && (line = fgetln(f, &size)))
+   {
+
+
+
     gedcom_lines++;
+
     /*
      * Allocate node and copy line into it
      */
     node = newnode();
+
+
     node->lineno = ++current_lineno;
     if((node->line = malloc(size+1)) == NULL)
+    {
       out_of_memory();
-    node->line[size] = '\0';
+    }
+
+    (node->line)[size] = '\0';
     do {
       --size;
-      switch(line[size]) {
+      switch(line[size])
+      {
       case '\n':
       case '\r':
-	node->line[size] = '\0';
-	continue;
-	break;
+      //free(p);
+	     (node->line)[size] = '\0';
+	     continue;
+	     break;
       default:
-	node->line[size] = line[size];
-	break;
+	     (node->line)[size] = line[size];
+	     break;
       }
     } while(size);
+
+
     line = node->line;
     /*
      * Figure out level number
@@ -81,11 +102,12 @@ read_gedcom(FILE *f, struct node *prev, int level)
     if(*rest != ' ') {
       fprintf(stderr, "%s: %ld: Malformed GEDCOM line ignored\n",
 	      current_gedcom, current_lineno);
-      free(node);
       free(node->line);
-
+     // free(p);
+      free(node);
       continue;
     }
+
     *rest++ = '\0';
     node->level = atoi(levp);
     /*
@@ -93,10 +115,13 @@ read_gedcom(FILE *f, struct node *prev, int level)
      */
     while(*rest == ' ')
       rest++;
-    if(*rest == '\0') {
+    if(*rest == '\0')
+     {
       fprintf(stderr, "%s: %ld: Malformed GEDCOM line ignored\n",
 	      current_gedcom, current_lineno);
-      free(node->line);
+     free(node->line);
+
+
       free(node);
       continue;
     }
@@ -142,35 +167,43 @@ read_gedcom(FILE *f, struct node *prev, int level)
      * The line is parsed, now take care of linking it in to
      * the data structure
      */
-    if(node->level < level) {
+    if(node->level < level)
+     {
       return(node);
-    } else if(node->level == level) {
+    }
+     else if(node->level == level) {
       prev->siblings = node;
       prev = node;
       continue;
-    } else {
+    }
+    else
+    {
       if(node->level > level+1)
-	fprintf(stderr, "%s: %ld: Level number increased by more than one\n",
-		current_gedcom, current_lineno);
+	         fprintf(stderr, "%s: %ld: Level number increased by more than one\n",current_gedcom, current_lineno);
       prev->children = node;
       node = read_gedcom(f, node, node->level);
-      if(node == NULL) {
-	fprintf(stderr, "%s: %ld GEDCOM file does not end at level 0\n",
-		current_gedcom, current_lineno);
-	return(NULL);
+      if(node == NULL)
+       {
+	       fprintf(stderr, "%s: %ld GEDCOM file does not end at level 0\n",
+	       	current_gedcom, current_lineno);
+	       return(NULL);
       }
       if(node->level < level)
-	return(node);
+	       return(node);
       prev->siblings = node;
       prev = prev->siblings;
     }
   }
+
+
   if(!feof(f)) {
     if(errno == ENOMEM)
       out_of_memory();
     else
+    {
       fprintf(stderr, "%s: %ld: Error reading GEDCOM file\n",
 	      current_gedcom, current_lineno);
+    }
   }
   return(NULL);
 }
@@ -185,7 +218,8 @@ void out_of_memory()
 char *fgetln(FILE *f, int *size)
 {
    static char *l = NULL;
-   char *lp, c;
+   char *lp;
+   int c;
    static int max = 4;
    int s = 0;
 
@@ -196,10 +230,12 @@ char *fgetln(FILE *f, int *size)
    }
    if(feof(f) || ferror(f)) {
      *size = 0;
+     free(l);
      return(NULL);
    }
    lp = l;
-   while((c = fgetc(f)) != EOF) {
+   while((c = fgetc(f)) != EOF)
+    {
      if(s >= max-1) {
         max = 2*max;
         if((l = realloc(l, max)) == NULL)
@@ -214,7 +250,10 @@ char *fgetln(FILE *f, int *size)
    *lp++ = '\0';
    *size = s;
    if(s == 0)
+   {
+    free(l);
      return(NULL);
+   }
    return(l);
 }
 #endif
