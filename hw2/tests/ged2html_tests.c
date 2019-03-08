@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <sys/types.h>
+#include  <sys/wait.h>
 #include <criterion/criterion.h>
 
 #define TESTALL_FILE "tests/rsrc/testall.ged"
