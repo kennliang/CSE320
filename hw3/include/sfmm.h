@@ -254,7 +254,7 @@ void sf_mem_fini();
  *
  * @return On success, this function returns a pointer to the start of the
  * additional page, which is the same as the value that would have been returned
- * by get_heap_end() before the size increase.  On error, NULL is returned
+ * by sf_mem_end() before the size increase.  On error, NULL is returned
  * and sf_errno is set to ENOMEM.
  */
 void *sf_mem_grow();
@@ -278,7 +278,7 @@ void *sf_mem_end();
 void sf_show_header(sf_header *hp);
 void sf_show_block(sf_block *bp);
 void sf_show_blocks();
-void sf_show_free_list();
+void sf_show_free_lists();
 void sf_show_quick_lists();
 void sf_show_heap();
 
