@@ -217,3 +217,143 @@ Test(sf_memsuite_student, realloc_smaller_block_free_block, .init = sf_mem_init,
 //DO NOT DELETE THESE COMMENTS
 //############################################
 
+
+/*
+	Testing sf_mem_grow() to expand the heap with no coalescing needed.
+
+*/
+Test(sf_memsuite_student, mem_grow_no_coalesce, .init = sf_mem_init, .fini = sf_mem_fini)
+{
+
+	void *a = sf_malloc(4040);
+	void *b = sf_malloc(1);
+
+	sf_header *hp = (sf_header *)((char*)a - sizeof(sf_header));
+	printf("%d\n",hp->block_size );
+	cr_assert(hp->block_size & THIS_BLOCK_ALLOCATED, "Allocated bit is not set!");
+	cr_assert((hp->block_size & PREV_BLOCK_ALLOCATED) == 2, "previous bit is not set!");
+	cr_assert((hp->block_size & BLOCK_SIZE_MASK) == 4048, "Block size not what was expected!");
+	cr_assert(hp->requested_size == 4040, "Requested size not what was expected!");
+
+	hp = (sf_header *)((char*)b - sizeof(sf_header));
+	cr_assert(hp->block_size & THIS_BLOCK_ALLOCATED, "Allocated bit is not set!");
+	cr_assert((hp->block_size & PREV_BLOCK_ALLOCATED) == 2, "previous bit is not set!");
+	cr_assert((hp->block_size & BLOCK_SIZE_MASK) == 32, "Block size not what was expected!");
+	cr_assert(hp->requested_size == 1, "Requested size not what was expected!");
+
+	assert_free_block_count(0, 1);
+	assert_free_block_count(4064, 1);
+}
+
+
+/*
+	Testing the flush property of a quick list. When there are 5 free blocks in a single quick list
+	and another free block is to be added. All 5 free blocks should be freed into main free list and coalesce.
+	Add the block to the quick list (1 block in the list now)
+*/
+Test(sf_memsuite_student, flush_quick_list, .init = sf_mem_init, .fini = sf_mem_fini)
+{
+ 	void *a = sf_malloc(1);
+    void *b = sf_malloc(2);
+    void *c = sf_malloc(3);
+    void *d = sf_malloc(4);
+    void *e = sf_malloc(5);
+    void *f = sf_malloc(6);
+
+    sf_free(a);
+    sf_free(b);
+    sf_free(c);
+    sf_free(d);
+    sf_free(e);
+    sf_free(f);
+
+    sf_header *hp = (sf_header *)((char*)f - sizeof(sf_header));
+	cr_assert(hp->block_size & THIS_BLOCK_ALLOCATED, "Allocated bit is not set!");
+	cr_assert((hp->block_size & PREV_BLOCK_ALLOCATED) == 0, "previous bit is not set!");
+
+
+    //check if there are 3 free blocks (1 in quick,2 in main list)
+	assert_free_block_count(0, 3);
+	//check if free block size is 160 (5*32) as a result of coalescing
+    assert_free_block_count(160, 1);
+    assert_free_block_count(3856, 1);
+    //check if there is a single free block in quick list(32)
+    assert_quick_list_block_count(32, 1);
+    cr_assert(sf_errno == 0, "sf_errno is not zero!");
+}
+
+/*
+	Testing case 4 of coalescing where the next and previous block of the current block being freed
+	is freed. As a result, the previous,current, and next block are combined together into a
+	single free block
+*/
+Test(sf_memsuite_student, coalesce_case_4, .init = sf_mem_init, .fini = sf_mem_fini) {
+	sf_errno = 0;
+	sf_malloc(9);
+	void *x = sf_malloc(200);
+	void *y = sf_malloc(300);
+	void *z = sf_malloc(400);
+	void *p = sf_malloc(15);
+
+	sf_free(x);
+	sf_free(z);
+	sf_free(y);
+
+	sf_header *hp = (sf_header *)((char*)p - sizeof(sf_header));
+	cr_assert((hp->block_size & PREV_BLOCK_ALLOCATED) == 0, "previous bit is not set!");
+
+	assert_free_block_count(0, 2);
+	//check if coalescing of case 4 results in a free block of size 944
+	assert_free_block_count(944, 1);
+	assert_free_block_count(3040, 1);
+	assert_quick_list_block_count(0, 0);
+	cr_assert(sf_errno == 0, "sf_errno is not zero!");
+}
+
+/*
+	Testing case 4 of coalescing where the previous block is freed and the next block is not freed
+	As a result, only the previous and current block are combined into a single free block.
+*/
+Test(sf_memsuite_student, coalesce_case_2, .init = sf_mem_init, .fini = sf_mem_fini) {
+	sf_errno = 0;
+	sf_malloc(13);
+	void *x = sf_malloc(1000);
+	void *y = sf_malloc(2000);
+	void *z = sf_malloc(12);
+
+	sf_free(x);
+	sf_free(y);
+
+	sf_header *hp = (sf_header *)((char*)z - sizeof(sf_header));
+	cr_assert((hp->block_size & PREV_BLOCK_ALLOCATED) == 0, "previous bit is not set!");
+
+	assert_free_block_count(0, 2);
+	//check if coalescing of case 2 results in a free block of size 960
+	assert_free_block_count(960, 1);
+	assert_free_block_count(3024, 1);
+	assert_quick_list_block_count(0, 0);
+	cr_assert(sf_errno == 0, "sf_errno is not zero!");
+}
+/*
+	Testing using the use of the quicklist where there is a free block that exactly
+	matches the required blocksize.
+*/
+Test(sf_memsuite_student, use_quick_list, .init = sf_mem_init, .fini = sf_mem_fini) {
+	sf_errno = 0;
+ 	void *x = sf_malloc(1);
+    sf_free(x);
+    void *y = sf_malloc(5);
+
+    sf_header *hp = (sf_header *)((char*)y - sizeof(sf_header));
+	cr_assert(hp->block_size & THIS_BLOCK_ALLOCATED, "Allocated bit is not set!");
+	cr_assert(hp->requested_size == 5, "Requested size not what was expected!");
+
+    assert_free_block_count(0, 1);
+    assert_free_block_count(4016, 1);
+    assert_quick_list_block_count(0, 0);
+    cr_assert(sf_errno == 0, "sf_errno is not zero!");
+
+}
+
+
+
