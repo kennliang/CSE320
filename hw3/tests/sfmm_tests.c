@@ -229,7 +229,6 @@ Test(sf_memsuite_student, mem_grow_no_coalesce, .init = sf_mem_init, .fini = sf_
 	void *b = sf_malloc(1);
 
 	sf_header *hp = (sf_header *)((char*)a - sizeof(sf_header));
-	printf("%d\n",hp->block_size );
 	cr_assert(hp->block_size & THIS_BLOCK_ALLOCATED, "Allocated bit is not set!");
 	cr_assert((hp->block_size & PREV_BLOCK_ALLOCATED) == 2, "previous bit is not set!");
 	cr_assert((hp->block_size & BLOCK_SIZE_MASK) == 4048, "Block size not what was expected!");
