@@ -13,7 +13,6 @@
 #define size_of_page 4096
 
 
-
 void *sf_malloc(size_t size) {
     static int initialization = 0;
 
@@ -132,6 +131,7 @@ void *sf_malloc(size_t size) {
                     //add the new block into the main free list
                     new_block->body.links.next = sf_free_list_head.body.links.next;
                     new_block->body.links.prev = &sf_free_list_head;
+                    sf_free_list_head.body.links.next->body.links.prev = new_block;
                     sf_free_list_head.body.links.next = new_block;
 
                     sf_header *new_footer = (sf_header *)(split_block + split - sizeof(sf_header));
@@ -188,6 +188,14 @@ void *sf_malloc(size_t size) {
             //setting new blocksize for header and footer
             combined_block->header.block_size = combine->block_size + size_of_page;
             free_footer->block_size = combine->block_size + size_of_page;
+            combined_block->body.links.prev->body.links.next = combined_block->body.links.next;
+            combined_block->body.links.next->body.links.prev = combined_block->body.links.prev;
+
+
+            combined_block->body.links.prev = &sf_free_list_head;
+            combined_block->body.links.next = sf_free_list_head.body.links.next;
+            sf_free_list_head.body.links.next->body.links.prev = combined_block;
+            sf_free_list_head.body.links.next = free_block = combined_block;
         }
         else
         {
@@ -195,6 +203,7 @@ void *sf_malloc(size_t size) {
             free_footer->block_size = size_of_page + 2;
             free_block->body.links.prev = &sf_free_list_head;
             free_block->body.links.next = sf_free_list_head.body.links.next;
+            sf_free_list_head.body.links.next->body.links.prev = free_block;
             sf_free_list_head.body.links.next = free_block;
         }
     }
@@ -270,26 +279,14 @@ void coalesce(void *free_head,int actual_size)
             next_header->header.block_size = next_header->header.block_size - 2;
         }
 
-        sf_block *find = sf_free_list_head.body.links.next;
-        int found = 0;
-        while(find != &sf_free_list_head && found == 0)
-        {
-            if(find == prev_header)
-            {
-                find->body.links.prev->body.links.next = find->body.links.next;
-                find->body.links.next->body.links.prev = find->body.links.prev;
+        prev_header->body.links.prev->body.links.next = prev_header->body.links.next;
+        prev_header->body.links.next->body.links.prev = prev_header->body.links.prev;
 
-                prev_header->body.links.next = sf_free_list_head.body.links.next;
-                prev_header->body.links.prev = &sf_free_list_head;
+        prev_header->body.links.next = sf_free_list_head.body.links.next;
+        prev_header->body.links.prev = &sf_free_list_head;
 
-                sf_free_list_head.body.links.next->body.links.prev = prev_header;
-                sf_free_list_head.body.links.next = prev_header;
-
-                found = 1;
-
-            }
-            find = find->body.links.next;
-        }
+        sf_free_list_head.body.links.next->body.links.prev = prev_header;
+        sf_free_list_head.body.links.next = prev_header;
     }
     //case 3 only next block is free
     if(prev_alloc == 1 && next_alloc == 0)
@@ -300,26 +297,14 @@ void coalesce(void *free_head,int actual_size)
         free_header->header.requested_size = 0;
         next_footer->requested_size = 0;
 
-        sf_block *find = sf_free_list_head.body.links.next;
-        int found = 0;
-        while(find != &sf_free_list_head && found == 0)
-        {
-            if(find == next_header)
-            {
-                find->body.links.prev->body.links.next = find->body.links.next;
-                find->body.links.next->body.links.prev = find->body.links.prev;
+        next_header->body.links.prev->body.links.next = next_header->body.links.next;
+        next_header->body.links.next->body.links.prev = next_header->body.links.prev;
 
-                free_header->body.links.next = sf_free_list_head.body.links.next;
-                free_header->body.links.prev = &sf_free_list_head;
+        free_header->body.links.next = sf_free_list_head.body.links.next;
+        free_header->body.links.prev = &sf_free_list_head;
 
-                sf_free_list_head.body.links.next->body.links.prev = free_header;
-                sf_free_list_head.body.links.next = free_header;
-
-                found = 1;
-
-            }
-            find = find->body.links.next;
-        }
+        sf_free_list_head.body.links.next->body.links.prev = free_header;
+        sf_free_list_head.body.links.next = free_header;
     }
     //case 4 both previous and next are free
     if(prev_alloc == 0 && next_alloc == 0)
@@ -327,34 +312,17 @@ void coalesce(void *free_head,int actual_size)
         prev_header->header.block_size = prev_header->header.block_size + actual_size + next_size;
         next_footer->block_size = prev_header->header.block_size;
 
-        int found = 0;
-        int found2 = 0;
+        prev_header->body.links.prev->body.links.next = prev_header->body.links.next;
+        prev_header->body.links.next->body.links.prev = prev_header->body.links.prev;
 
-         sf_block *find = sf_free_list_head.body.links.next;
-         while(find != &sf_free_list_head && (found == 0 || found2 == 0))
-        {
-            if(find == prev_header)
-            {
-                find->body.links.prev->body.links.next = find->body.links.next;
-                find->body.links.next->body.links.prev = find->body.links.prev;
-                found = 1;
-            }
-            else if(find == next_header)
-            {
-                find->body.links.prev->body.links.next = find->body.links.next;
-                find->body.links.next->body.links.prev = find->body.links.prev;
-                found2 = 1;
-            }
-            find = find->body.links.next;
-        }
-        if(found == 1 && found2 == 1)
-        {
-            prev_header->body.links.next = sf_free_list_head.body.links.next;
-            prev_header->body.links.prev = &sf_free_list_head;
+        next_header->body.links.prev->body.links.next = next_header->body.links.next;
+        next_header->body.links.next->body.links.prev = next_header->body.links.prev;
 
-            sf_free_list_head.body.links.next->body.links.prev = prev_header;
-            sf_free_list_head.body.links.next = prev_header;
-        }
+        prev_header->body.links.next = sf_free_list_head.body.links.next;
+        prev_header->body.links.prev = &sf_free_list_head;
+
+        sf_free_list_head.body.links.next->body.links.prev = prev_header;
+        sf_free_list_head.body.links.next = prev_header;
     }
     return;
 }
