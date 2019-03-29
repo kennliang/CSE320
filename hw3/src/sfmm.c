@@ -459,7 +459,7 @@ void *sf_realloc(void *pp, size_t rsize) {
         sf_free(pp);
         return new_malloc;
     }
-    else if (realloc_ptr->header.requested_size > rsize)
+    else if (realloc_ptr->header.requested_size >= rsize)
     {
          int size_block = rsize + 8;
         // computing the amount of adding needed to reach double-word alignment
