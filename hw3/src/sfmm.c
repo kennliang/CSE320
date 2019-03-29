@@ -144,6 +144,8 @@ void *sf_malloc(size_t size) {
                 else
                 {
                     find->header.block_size = find->header.block_size + 1;
+                    sf_header *p = (sf_header *)((void *)find + find->header.block_size - prev_alloc -1);
+                    p->block_size = p->block_size + 2;
                 }
                 find->header.requested_size = size;
                 return find->body.payload;
