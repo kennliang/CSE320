@@ -8,7 +8,7 @@ hollandaise_sauce: butter egg_yolks lime_juice cream salt pepper
   beat yolks
   add juice cream salt pepper
   cook mixture
-  
+
 poached_eggs: eggs
   boil water | reduce heat to simmer | cook eggs | remove eggs from water
 
