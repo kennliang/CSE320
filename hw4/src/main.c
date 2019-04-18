@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include "cookbook.h"
 #include "debug.h"
-
-#include<unistd.h>
 #include <getopt.h>
 #include <string.h>
 
@@ -26,44 +24,61 @@ int string_to_int(char *s)
     return num;
 }
 
-
 int main(int argc, char *argv[]) {
 
+    char *last = NULL;
+    if(argc != 1)
+    {
+     last = argv[argc-1];
+    }
 
     extern char *optarg ;
-    extern int opterr;
-    opterr = 0;
+   // extern int opterr;
+   // opterr = 0;
+
+    int dup_f = 0;
+    int dup_c = 0;
 
     int max_cooks = 1;
     char *filename = "cookbook.ckb";
     char *main_recipe_name = NULL;
 
-
     int c;
     while ((c = getopt (argc, argv, ":c:f:")) != -1)
     {
+        debug("optind = %d argc = %d",optind,argc);
+        debug("optarg = %s",optarg);
         switch(c)
         {
             //name of file for recipe
             case 'f':
-                //debug("optarg%s",optarg);
-                if(strncmp(optarg,"-",1))
-                    filename = optarg;
+                dup_f++;
+                if(dup_f == 2)
+                {
+                    fprintf(stderr, "%s\n","Duplicate f flag was entered" );
+                    exit(1);
+                }
+                filename = optarg;
                 break;
             //maximum number of cooks available
             case 'c':
-                //debug("optarg%s",optarg);
+                dup_c++;
+                 if(dup_c == 2)
+                {
+                    fprintf(stderr, "%s\n","Duplicate c flag was entered" );
+                    exit(1);
+                }
                 max_cooks = string_to_int(optarg);
                 if(max_cooks == 0)
-                    return EXIT_FAILURE;
+                    exit(1);
                 break;
             case ':':
-                debug("Error no arguments provided");
-                return EXIT_FAILURE;
+                fprintf(stderr, "%s\n", "Error no arguments provided to flags");
+                exit(1);
                 break;
             case '?':
-                debug("Error with processing arguments.(invalid flags)");
-                return EXIT_FAILURE;
+                fprintf(stderr, "%s\n", "Error with processing arguments.(invalid flags)");
+                exit(1);
                 break;
 
         }
@@ -71,24 +86,37 @@ int main(int argc, char *argv[]) {
 
     if(optind < argc)
     {
-        //printf("Non-option args: ");
         main_recipe_name = argv[optind++];
-       // debug("Main_recipe = %s",argv[optind++]);
+        if(strcmp(main_recipe_name,last) != 0)
+        {
+            fprintf(stderr, "%s\n", "The main recipe argument was not the last argument" );
+            exit(1);
+        }
+
+        debug("Main_recipe = %s",main_recipe_name);
         if(optind < argc)
-            //additional non-option arguments to be handled how? exit?
-            debug("extra_non_option_arguments_%s ", argv[optind++]);
+        {
+            fprintf(stderr, "%s\n", "An additional non-option argument was passed");
+            exit(1);
+        }
     }
-    /*
-    debug("%d",opterr);
+    debug("main_recipe_name = %s",main_recipe_name);
     debug("File_name = %s",filename);
     debug("Max_cooks = %d",max_cooks);
-    */
+
     //REMOVE THIS LINE LATER@@@@@@@@@@@@@@@@@@@@@@@
     filename++;
 
+
     COOKBOOK *cbp;
     int err = 0;
+
+
+    //  REMEMBER TO CHANGE THIS TO THE CORRECT REQUIREMENTS//
     FILE *in = fopen("rsrc/eggs_benedict.ckb", "r");
+
+
+
     cbp = parse_cookbook(in, &err);
     if(err)
     {
@@ -96,15 +124,7 @@ int main(int argc, char *argv[]) {
 	   exit(1);
     }
     if(process_recipe(cbp,main_recipe_name,max_cooks))
-        return 1;
+        exit(1);
 
-    /*
-    else
-    {
-	   unparse_cookbook(cbp, stdout);
-    }
-    exit(1);
-    */
-
-    return 0;
+    exit(0);
 }
