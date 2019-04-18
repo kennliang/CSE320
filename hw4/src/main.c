@@ -104,18 +104,17 @@ int main(int argc, char *argv[]) {
     debug("File_name = %s",filename);
     debug("Max_cooks = %d",max_cooks);
 
-    //REMOVE THIS LINE LATER@@@@@@@@@@@@@@@@@@@@@@@
-    filename++;
-
-
     COOKBOOK *cbp;
     int err = 0;
 
-
     //  REMEMBER TO CHANGE THIS TO THE CORRECT REQUIREMENTS//
-    FILE *in = fopen("rsrc/eggs_benedict.ckb", "r");
+    FILE *in = fopen(filename, "r");
+    if(in == NULL)
+    {
+        fprintf(stderr, "%s\n", "unable to find cookbook file");
+        exit(1);
 
-
+    }
 
     cbp = parse_cookbook(in, &err);
     if(err)
