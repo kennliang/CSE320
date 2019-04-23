@@ -503,6 +503,8 @@ int process_recipe(COOKBOOK *cb,char *main_recipe_name,int max_cooks)
                     int pipe_result = pipe(fd);
                     int pipe_result2 = pipe(fd2);
 
+                    debug("fd[0] = %d fd[1] = %d fd2[0] = %d fd2[1] = %d",fd[0],fd[1],fd2[0],fd2[1]);
+
                     if(pipe_result2 == -1 || pipe_result == -1)
                     {
                         fprintf(stderr, "%s\n", "pipe function failed");
@@ -723,14 +725,23 @@ int process_recipe(COOKBOOK *cb,char *main_recipe_name,int max_cooks)
 
                     while( (task_pid = wait(&status_task))   > 0)
                     {
-                        if(WEXITSTATUS(status_task))
+                        if(WIFEXITED(status_task))
                         {
-                            fprintf(stderr, "%s\n","PROCESS DID NOT NORMALLY TERMINATED" );
+                            if(WEXITSTATUS(status_task))
+                            {
+                                fprintf(stderr, "%s\n","PROCESS DID NOT NORMALLY TERMINATED" );
+                                exit(1);
+                            }
+                        }
+                        else
+                        {
+                            fprintf(stderr, "%s\n","PROCESS DID NOT NORMALLY TERMINATED BY SIGNAL" );
                             exit(1);
                         }
                     }
                     tasks = tasks->next;
                 }
+
                 exit(0);
             }
             //fork returns pid of child to parent
