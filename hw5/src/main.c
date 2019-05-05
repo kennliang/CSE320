@@ -6,6 +6,12 @@
 #include "debug.h"
 #include "server.h"
 
+#include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include "csapp.h"
+
+
 static void terminate(int status);
 
 static char *default_maze[] = {
@@ -20,19 +26,205 @@ static char *default_maze[] = {
   NULL
 };
 
-CLIENT_REGISTRY *client_registry;
+
+int string_to_int(char *s)
+{
+    int num = 0;
+    while(*s != '\0')
+    {
+        if(*s >= '0' && *s <= '9')
+        {
+            //shifts digits to the left by one decimal place and add the current digit
+            num = num *10 + *s - '0';
+        }
+        else
+            return 0;
+        ++s;
+    }
+    return num;
+}
+/*
+typedef struct NODE{
+    int *fd;
+    struct NODE *next;
+}NODE;
+
+typedef struct client_registry{
+    int num_connected;
+    NODE *registry;
+    sem_t mutex;
+}CLIENT_REGISTRY;*/
+
+
+void *testing_func(void *args)
+{
+  for( int i = 0 ;i < 800;i++)
+    creg_register(client_registry,i);
+  return NULL;
+}
+
+void *test2(void *args)
+{
+  debug("before wait call in test");
+  creg_wait_for_empty(client_registry);
+  debug("after wait call in test");
+  //debug("num connected in test2 = %d",client_registry->num_connected);
+  return NULL;
+}
+
+void terminate_handler()
+{
+  terminate(0);
+}
+void sig_pipe_ignore()
+{
+  debug("sig_pipe executed");
+  return;
+}
 
 int main(int argc, char* argv[]){
+/*
+  for(int i = 0 ; i < 200; i++)
+    debug("random num = %d",rand_func(10));
+    */
+
+  /*for(int i = 0; default_maze[i] != NULL; i++)
+  {
+    debug("%s",default_maze[i]);
+  }*/
+
+/*
+    client_registry = creg_init();
+    pthread_t tid[10];
+    int max_thread = 2;
+
+     for(int i = 0; i < max_thread; i++)
+     {
+        Pthread_create(&tid[i],NULL,testing_func,NULL);
+     }
+
+     for(int i = 0; i < max_thread; i++)
+     {
+        Pthread_join(tid[i],NULL);
+     }
+
+     creg_fini(client_registry);
+
+     int total = client_registry->num_connected;
+     printf("\n\n\n");
+      Pthread_create(&tid[2],NULL,test2,NULL);
+     debug("total = %d",total);
+
+     for(int i = 0; i < total/2;i++)
+     {
+        creg_unregister(client_registry,i);
+        creg_unregister(client_registry,i);
+     }
+
+     creg_shutdown_all(client_registry);
+       creg_fini(client_registry);
+
+       while(1)
+       {
+        ;
+       }
+       */
+
+
     // Option processing should be performed here.
     // Option '-p <port>' is required in order to specify the port number
     // on which the server should listen.
 
+    int port = 0;
+    int port_entered = 0;
+    char *map_template = NULL;
+
+    extern char *optarg;
+    int c;
+    while((c = getopt(argc,argv,"p:t:")) != -1)
+    {
+      switch(c)
+      {
+        case 'p':
+          port_entered = 1;
+          port = string_to_int(optarg);
+          break;
+        case 't':
+          map_template = optarg;
+          break;
+        case '?':
+          fprintf(stderr, "%s\n", "Error with processing arguments.(invalid flags)");
+          //terminate(EXIT_FAILURE);
+          exit(1);
+          break;
+      }
+    }
+
+    if(port_entered == 0)
+    {
+      fprintf(stderr, "%s\n","A port number was not specify" );
+      //terminate(EXIT_FAILURE);
+      exit(1);
+    }
+
+    char **input_template = malloc(250 * sizeof(char*));
+    if(map_template != NULL)
+    {
+      FILE *fp = fopen(map_template,"r");
+      if(fp == NULL)
+      {
+        fprintf(stderr, "%s\n", "ERROR OPENING TEMPLATE FILE");
+        exit(1);
+      }
+
+      int buf_size = 250;
+      char *line = malloc(buf_size *sizeof(char));
+      long unsigned int size_line = 250;
+      int getLine;
+      char **temp_input = input_template;
+      while( (getLine = getline(&line,&size_line,fp)) != -1)
+      {
+        //debug("getLine = %d",getLine);
+        //debug("strlen = %ld",strlen(line));
+        //debug("the character %c",*(line+30));
+        if(*(line+getLine-1) == '\n')
+        {
+          //debug("executed");
+          char *temp = line+getLine-1;
+          *temp = '\0';
+        }
+        char *newline = malloc(getLine-1 *sizeof(char));
+        strcpy(newline,line);
+        debug("%s",line);
+        //debug("%p",*temp_input);
+        *temp_input = newline;
+        temp_input++;
+      }
+      *temp_input = NULL;
+      debug("");
+      for(int i = 0; *input_template != NULL; i++)
+      {
+        debug("%s",*input_template);
+        input_template++;
+      }
+
+    }
+
+
     // Perform required initializations of the client_registry,
     // maze, and player modules.
     client_registry = creg_init();
-    maze_init(default_maze);
+    if(map_template == NULL)
+      maze_init(default_maze);
+    else
+      maze_init(input_template);
     player_init();
     debug_show_maze = 1;  // Show the maze after each packet.
+
+
+    maze_get_rows();
+    maze_get_cols();
+
 
     // TODO: Set up the server socket and enter a loop to accept connections
     // on this socket.  For each connection, a thread should be started to
@@ -40,10 +232,49 @@ int main(int argc, char* argv[]){
     // a SIGHUP handler, so that receipt of SIGHUP will perform a clean
     // shutdown of the server.
 
+    //installing SIGHUP handler
+    struct sigaction act;
+    struct sigaction act2;
+    memset(&act,0,sizeof(struct sigaction));
+    memset(&act2,0,sizeof(struct sigaction));
+    act.sa_handler = terminate_handler;
+    act2.sa_handler = sig_pipe_ignore;
+
+    int sig_result = sigaction(SIGHUP,&act,NULL);
+    int sig_result2 = sigaction(SIGPIPE,&act2,NULL);
+    if(sig_result == -1 || sig_result2 == -1)
+    {
+      fprintf(stderr, "%s\n","sigaction function failed" );
+      //terminate(EXIT_FAILURE);
+      exit(1);
+    }
+
+    //setting up server socket and loop to accept connections and a thread started to run
+    int listenfd;
+    socklen_t clientlen = sizeof(struct sockaddr_in);
+    int *connfd;
+    struct sockaddr_in clientaddr;
+    pthread_t tid;
+
+    listenfd = Open_listenfd(port);
+
+    while(1)
+    {
+
+      debug("inside loop");
+      connfd = Malloc(sizeof(int));
+      *connfd = Accept(listenfd,(SA *) &clientaddr,&clientlen);
+      debug("accepted socket");
+      Pthread_create(&tid,NULL,mzw_client_service,connfd);
+    }
+
+
+
     fprintf(stderr, "You have to finish implementing main() "
 	    "before the MazeWar server will function.\n");
 
-    terminate(EXIT_FAILURE);
+    terminate(1);
+
 }
 
 /*
@@ -51,9 +282,11 @@ int main(int argc, char* argv[]){
  */
 void terminate(int status) {
     // Shutdown all client connections.
+    debug("terminated called = %d",status);
     // This will trigger the eventual termination of service threads.
     creg_shutdown_all(client_registry);
-    
+    //creg_fini(client_registry);
+
     debug("Waiting for service threads to terminate...");
     creg_wait_for_empty(client_registry);
     debug("All service threads terminated.");
