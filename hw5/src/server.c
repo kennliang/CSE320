@@ -107,6 +107,7 @@ void *mzw_client_service(void *arg)
                         pkt->type = MZW_INUSE_PKT;
                         pkt->size = 0;
                         proto_send_packet(fd,pkt,data);
+                        pthread_exit(NULL);
                     }
                     else
                     {
