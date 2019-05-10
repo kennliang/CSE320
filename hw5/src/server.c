@@ -93,7 +93,6 @@ void *mzw_client_service(void *arg)
                 debug("login packet");
                 if(login_success == 0)
                 {
-                    login_success = 1;
                     debug("name = %s",*(char**)data);
                     debug("param1 = %d data = %s",pkt->param1,*(char **)data);
                     //int name_size = strlen(*(char **)data) +1;
@@ -107,10 +106,11 @@ void *mzw_client_service(void *arg)
                         pkt->type = MZW_INUSE_PKT;
                         pkt->size = 0;
                         proto_send_packet(fd,pkt,data);
-                        pthread_exit(NULL);
+                        //pthread_exit(NULL);
                     }
                     else
                     {
+                        login_success = 1;
                         pkt->type = MZW_READY_PKT;
                         pkt->size = 0;
                         proto_send_packet(fd,pkt,data);
