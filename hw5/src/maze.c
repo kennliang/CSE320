@@ -2,21 +2,17 @@
 #include "string.h"
 #include <stdlib.h>
 #include "debug.h"
-
-unsigned int next = 1;
-
-//random number between 0-range-1
-int rand_func(int range)
-{
-  next = next*1103515245 + 12345;
-  return (unsigned int)(next/65536) % range;
-}
+#include <time.h>
+#include "csapp.h"
 
 typedef struct maze {
     char **maze_template;
+    unsigned int next;
+    sem_t mutex;
 }MAZE;
 
-MAZE *maze = NULL;
+static MAZE *maze = NULL;
+
 /*
  * Initialize the maze.
  *
@@ -29,35 +25,27 @@ MAZE *maze = NULL;
  */
 void maze_init(char **template)
 {
+    debug("maze init");
     maze = malloc(sizeof(MAZE));
-
-    maze->maze_template = malloc(250 * sizeof(char*));
+    maze->maze_template = malloc(1000 * sizeof(char*));
 
     char **template_ref= template;
     char **maze_temp = maze->maze_template;
+    debug("Executed");
     int str_length = strlen(*template);
-   // debug("str_length = %d",str_length);
+    debug("executed");
     while(*template_ref != NULL)
     {
-        //debug("%d",str_length);
         *maze_temp = malloc(str_length +1 *sizeof(char));
         strcpy(*maze_temp,*template_ref);
-        debug("%s",*template_ref);
+        //debug("%s",*template_ref);
         maze_temp++;
         template_ref++;
     }
     *maze_temp = NULL;
-
-    //maze->maze_template = copy;
-    /*
-    char **temp = maze->maze_template;
-    debug("before print");
-    while(*temp != NULL)
-    {
-        debug("%s",*temp);
-        temp++;
-    }
-    */
+    maze->next = time(NULL);
+    Sem_init(&maze->mutex,0,1);
+    debug("maze ended");
 }
 
 /*
@@ -66,14 +54,16 @@ void maze_init(char **template)
  */
 void maze_fini()
 {
+
     char **temp = maze->maze_template;
     while(*temp != NULL)
     {
         free(*temp);
         temp++;
     }
-    free(temp);
+    free(maze->maze_template);
     free(maze);
+
 }
 
 /*
@@ -83,7 +73,7 @@ void maze_fini()
  */
 int maze_get_rows()
 {
-    debug("Get rows called");
+
     int num_rows = 0;
     char **temp = maze->maze_template;
     while(*temp != NULL)
@@ -91,7 +81,6 @@ int maze_get_rows()
         num_rows++;
         temp++;
     }
-    debug("num rows = %d",num_rows);
     return num_rows;
 }
 
@@ -102,11 +91,9 @@ int maze_get_rows()
  */
 int maze_get_cols()
 {
-    debug("get cols called");
     int num_cols = 0;
     char **temp = maze->maze_template;
     num_cols = strlen(*temp);
-    debug("num cols = %d",num_cols);
     return num_cols;
 }
 
@@ -125,18 +112,22 @@ int maze_get_cols()
 int maze_set_player(OBJECT avatar, int row, int col)
 {
     debug("row = %d col = %d",row,col);
+    P(&maze->mutex);
     char **temp = maze->maze_template;
-    temp = temp + row -1;
-    char *location = (*temp + col -1);
+    temp = temp + row;
+    char *location = *temp + col;
     if(IS_EMPTY(*location))
     {
         *location = avatar;
     }
     else
+    {
+        V(&maze->mutex);
         return 1;
+    }
+    V(&maze->mutex);
     return 0;
 }
-
 /*
  * Place a player's avatar in the maze at a random unoccupied location.
  *
@@ -151,38 +142,23 @@ int maze_set_player(OBJECT avatar, int row, int col)
  * location has not been found.  If placement is successful, then the views
  * of all players will be updated.
  */
+
 int maze_set_player_random(OBJECT avatar, int *rowp, int *colp)
 {
     debug("maze_set_player_random called");
-    int MAX_ATTEMPT = 100;
+    int MAX_ATTEMPT = 200;
     int success = 0;
     int num_attempts = 0;
     while(success == 0 && num_attempts < MAX_ATTEMPT)
     {
         num_attempts++;
-        int rand_row = rand_func(maze_get_rows());
-        int rand_col = rand_func(maze_get_cols());
+        maze->next = maze->next*1103515245 + 12345;
+        int rand_row = (unsigned int)(maze->next/65536) % maze_get_rows();
+        maze->next = maze->next*1103515245 + 12345;
+        int rand_col = (unsigned int)(maze->next/65536) % maze_get_cols();
         debug("rand_row = %d rand_col = %d",rand_row,rand_col);
-        char **temp = maze->maze_template;
-        temp = temp + rand_row;
-        debug("%s",*temp);
-        char *location = *temp + rand_col;
-      //  debug("%c",*location);
-        if(IS_EMPTY(*location))
+        if((maze_set_player(avatar,rand_row,rand_col)) == 0)
         {
-            *location = avatar;
-            /*
-            int length = strlen(*temp);
-            char *copy = malloc(length * sizeof(char));
-            strcpy(copy,*temp);
-            char *copy_loc = copy+ rand_col;
-            *copy_loc = avatar;
-            //free(*temp);
-            *temp = copy;
-            debug("%s",copy);
-            *location = 'a';
-            */
-
             *rowp = rand_row;
             *colp = rand_col;
             success = 1;
@@ -190,7 +166,6 @@ int maze_set_player_random(OBJECT avatar, int *rowp, int *colp)
     }
     if(success == 0)
         return 1;
-
     return 0;
 }
 
@@ -205,12 +180,14 @@ int maze_set_player_random(OBJECT avatar, int *rowp, int *colp)
  */
 void maze_remove_player(OBJECT avatar, int row, int col)
 {
-    debug("row = %d col = %d",row,col);
-    debug("maze_remove_player called");
+    //debug("row = %d col = %d",row,col);
+    //debug("maze_remove_player called");
+    P(&maze->mutex);
     char **temp = maze->maze_template;
     temp = temp + row;
     char *location = *temp + col;
     *location = EMPTY;
+    V(&maze->mutex);
 }
 
 /*
@@ -229,9 +206,6 @@ void maze_remove_player(OBJECT avatar, int row, int col)
  */
 int maze_move(int row, int col, int dir)
 {
-
-    //show_maze();
-    //debug("maze_move called");
     debug("row = %d col = %d",row,col);
 
     //check for going out of bounds!!!!!!!!!!
@@ -239,83 +213,55 @@ int maze_move(int row, int col, int dir)
     char **temp = maze->maze_template;
     temp = temp + row;
     char *current_location = *temp + col;
-    char *location;
-    if(IS_EMPTY(*current_location))
-        debug("the avatar is not here");
-    else
-    {
-        debug("temp = %s",*temp);
-        debug("current loction = %s",current_location);
-        debug("the avatar is here = %c",*current_location);
-    }
+
     switch(dir)
     {
         case NORTH:
             debug("north");
-            temp = temp -1;
-            location = *temp + col;
-            if(IS_EMPTY(*location))
+            if( (maze_set_player(*current_location,row-1,col)) == 0)
             {
-
-                debug("location empty = %c",*location);
-                *location = *current_location;
+                P(&maze->mutex);
                 *current_location = EMPTY;
+                V(&maze->mutex);
             }
             else
-            {
-                debug("location not empty");
                 return 1;
-            }
             break;
         case SOUTH:
             debug("south");
-            temp = temp + 1;
-            location = *temp + col;
-            if(IS_EMPTY(*location))
+            if( (maze_set_player(*current_location,row+1,col)) == 0)
             {
-                debug("location empty = %c",*location);
-                *location = *current_location;
+                P(&maze->mutex);
                 *current_location = EMPTY;
+                V(&maze->mutex);
             }
             else
-            {
-                 debug("location not empty");
                 return 1;
-            }
             break;
         case EAST:
             debug("east");
-            location = *temp + col +1;
-            if(IS_EMPTY(*location))
+            if( (maze_set_player(*current_location,row,col+1)) == 0)
             {
-                  debug("location empty = %c",*location);
-                *location = *current_location;
+                P(&maze->mutex);
                 *current_location = EMPTY;
+                V(&maze->mutex);
             }
             else
-            {
-                 debug("location not empty");
                 return 1;
-            }
             break;
         case WEST:
             debug("west");
-            location = *temp + col -1;
-            if(IS_EMPTY(*location))
+            if( (maze_set_player(*current_location,row,col-1)) == 0)
             {
-                 debug("location empty = %c",*location);
-                *location = *current_location;
+                P(&maze->mutex);
                 *current_location = EMPTY;
+                V(&maze->mutex);
             }
             else
-            {
-                 debug("location not empty");
                 return 1;
-            }
             break;
     }
-
-   // show_maze();
+    //V(&maze->mutex);
     return 0;
 }
 
@@ -339,6 +285,7 @@ OBJECT maze_find_target(int row, int col, DIRECTION dir)
     char **maze_ptr = maze->maze_template;
     char *location;
 
+    P(&maze->mutex);
     switch(dir)
     {
         case NORTH:
@@ -350,8 +297,6 @@ OBJECT maze_find_target(int row, int col, DIRECTION dir)
                 maze_ptr--;
                 location = *maze_ptr + col;
             }
-            if(IS_AVATAR(*location))
-                return *location;
             break;
         case SOUTH:
             debug("south");
@@ -362,8 +307,6 @@ OBJECT maze_find_target(int row, int col, DIRECTION dir)
                 maze_ptr++;
                 location = *maze_ptr + col;
             }
-            if(IS_AVATAR(*location))
-                return *location;
             break;
         case WEST:
             debug("west");
@@ -373,8 +316,6 @@ OBJECT maze_find_target(int row, int col, DIRECTION dir)
             {
                 location--;
             }
-            if(IS_AVATAR(*location))
-                return *location;
             break;
         case EAST:
             debug("east");
@@ -384,10 +325,14 @@ OBJECT maze_find_target(int row, int col, DIRECTION dir)
             {
                 location++;
             }
-            if(IS_AVATAR(*location))
-                return *location;
             break;
     }
+    if(IS_AVATAR(*location))
+    {
+        V(&maze->mutex);
+        return *location;
+    }
+    V(&maze->mutex);
     return EMPTY;
 }
 
@@ -413,17 +358,14 @@ int maze_get_view(VIEW *view, int row, int col, DIRECTION gaze, int depth)
 {
     debug("row = %d col = %d depth = %d",row,col,depth);
     debug("maze_get_view called");
-    VIEW *view_temp = view;
+    //VIEW *view_temp = view;
+    P(&maze->mutex);
 
     char **maze_ptr = maze -> maze_template;
     maze_ptr = maze_ptr + row;
     char *location = *maze_ptr + col;
-    if(IS_AVATAR(*location))
-    {
-        debug("avatar located here =%c",*location);
-    }
+
     int actual_depth  = 1;
-   // char *temp;
     char **maze_prev = maze_ptr -1;
     char **maze_next = maze_ptr +1;
     int index = 0;
@@ -495,9 +437,6 @@ int maze_get_view(VIEW *view, int row, int col, DIRECTION gaze, int depth)
             actual_depth++;
             if(actual_depth > depth)
                 actual_depth = depth;
-            //char **maze_prev = maze_ptr -1;
-            //char **maze_next = maze_ptr +1;
-            //int index = 0;
             for(int i = 0 ; i <  actual_depth ; i++)
             {
                 *((**view)+index) = *(*maze_next + col - i);
@@ -521,9 +460,6 @@ int maze_get_view(VIEW *view, int row, int col, DIRECTION gaze, int depth)
             actual_depth++;
             if(actual_depth > depth)
                 actual_depth = depth;
-            //char **maze_prev = maze_ptr -1;
-            //char **maze_next = maze_ptr +1;
-            //int index = 0;
             for(int i = 0 ; i <  actual_depth ; i++)
             {
                 *((**view)+index) = *(*maze_prev + col + i);
@@ -536,8 +472,9 @@ int maze_get_view(VIEW *view, int row, int col, DIRECTION gaze, int depth)
              *((**view)+3 *actual_depth) = '\0';
             break;
     }
-    debug("actual_depth = %d",actual_depth);
-    debug("view_string =%s",**view_temp);
+    //debug("actual_depth = %d",actual_depth);
+    //debug("view_string =%s",**view_temp);
+    V(&maze->mutex);
 
     return actual_depth;
 }
@@ -549,10 +486,12 @@ void show_view(VIEW *view, int depth)
 
 void show_maze()
 {
+    P(&maze->mutex);
     char **display = maze->maze_template;
     while(*display != NULL)
     {
         fprintf(stderr, "%s\n", *display);
         display++;
     }
+    V(&maze->mutex);
 }

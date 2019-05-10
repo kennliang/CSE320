@@ -39,7 +39,7 @@ int proto_send_packet(int fd, MZW_PACKET *pkt, void *data)
        // debug("result inside loop = %d",result);
         if( result == -1)
         {
-            fprintf(stderr, "%s\n","write returned -1" );
+            //fprintf(stderr, "%s\n","write returned -1" );
             return 1;
         }
         size_packet = size_packet - result;
@@ -57,7 +57,7 @@ int proto_send_packet(int fd, MZW_PACKET *pkt, void *data)
           //  debug("result inside loop = %d",result);
             if( result == -1)
             {
-                fprintf(stderr, "%s\n","read returned -1" );
+                fprintf(stderr, "%s\n","write returned -1" );
                 return 1;
             }
             payload_size = payload_size - result;
@@ -104,6 +104,27 @@ int proto_recv_packet(int fd, MZW_PACKET *pkt, void **datap)
         debug("result inside loop = %d",result);
         if( result == -1)
         {
+            if(errno == EAGAIN)
+                debug("eagain");
+            else if(errno == EWOULDBLOCK)
+                debug("EWOULDBLOCK");
+            else if(errno == EBADF)
+                debug("ebadf");
+            else if(errno == EFAULT)
+                debug("EFAULT");
+            else if(errno == EINTR)
+            {
+                debug("EINTR");
+                return 3;
+            }
+            else if (errno == EINVAL)
+                debug("EINVAL");
+            else if(errno == EIO)
+                debug("EIO");
+            else if(errno == EISDIR)
+                debug("EISDIR");
+            else
+                debug("unknown errno");
             fprintf(stderr, "%s\n","read returned -1" );
             return 1;
         }
@@ -112,7 +133,7 @@ int proto_recv_packet(int fd, MZW_PACKET *pkt, void **datap)
     debug("result outside loop = %d",result);
     if(size_packet != 0)
     {
-        fprintf(stderr, "%s\n", "incomplete receiving header");
+        //fprintf(stderr, "%s\n", "incomplete receiving header");
         return 1;
     }
 
@@ -131,7 +152,7 @@ int proto_recv_packet(int fd, MZW_PACKET *pkt, void **datap)
     if(pkt->size != 0)
     {
         debug("there is payload");
-        *datap = Calloc(1,pkt->size);
+        *datap = Calloc(1,pkt->size+1);
 
         int payload_size = pkt->size;
         while ((result = read(fd,*datap,payload_size)))
@@ -149,6 +170,8 @@ int proto_recv_packet(int fd, MZW_PACKET *pkt, void **datap)
             fprintf(stderr, "%s\n", "incomplete recieving payload");
             return 1;
         }
+        *(char *)(*datap+pkt->size) = '\0';
+
     }
 
     return 0;

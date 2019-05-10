@@ -18,20 +18,21 @@
  * become empty before exiting the program.
  */
 
+
 typedef struct NODE{
     int *fd;
     struct NODE *next;
 }NODE;
 
-typedef struct client_registry{
+struct client_registry{
     int num_connected;
     NODE *registry;
     sem_t mutex;
     sem_t blocking;
-}CLIENT_REGISTRY;
+};
 
 
-CLIENT_REGISTRY *client_registry;
+CLIENT_REGISTRY *client_registry = NULL;
 
 /*
  * Initialize a new client registry.
@@ -46,6 +47,7 @@ CLIENT_REGISTRY *creg_init()
     new->num_connected = 0;
     Sem_init(&new->mutex,0,1);
     Sem_init(&new->blocking,0,0);
+    client_registry = new;
     return new;
 }
 
@@ -58,18 +60,25 @@ CLIENT_REGISTRY *creg_init()
 void creg_fini(CLIENT_REGISTRY *cr)
 {
 
+    //remember to complete this
+
     debug("num_connected = %d",cr->num_connected);
     NODE *temp = cr->registry;
-    int count = 0;
+
+    //int count = 0;
     while(temp != NULL)
     {
-        if(count % 40 == 0)
-            printf("\n");
-        printf("%d ",*(temp->fd));
+        debug("%d",*(temp->fd));
+        free(temp->fd);
+        //free(temp);
+        NODE *current = temp;
         temp = temp->next;
-        count++;
+        free(current);
+       // count++;
     }
-    //free(cr);
+
+    //while()
+    free(cr);
     //cr = NULL;
 }
 
@@ -81,7 +90,7 @@ void creg_fini(CLIENT_REGISTRY *cr)
  */
 void creg_register(CLIENT_REGISTRY *cr, int fd)
 {
-    //debug("registered called");
+    debug("registered called = %d",fd);
 
     P(&cr->mutex);
     cr->num_connected = cr->num_connected + 1;
@@ -92,6 +101,9 @@ void creg_register(CLIENT_REGISTRY *cr, int fd)
     *(new->fd) = fd;
     new->next = prev;
     V(&cr->mutex);
+
+
+    //debug("registering ended");
     //V(&cr->blocking);
 }
 
@@ -104,7 +116,7 @@ void creg_register(CLIENT_REGISTRY *cr, int fd)
  */
 void creg_unregister(CLIENT_REGISTRY *cr, int fd)
 {
-   // debug("unregistered called");
+   debug("unregistered called");
    // P(&cr->blocking);
     P(&cr->mutex);
     cr->num_connected = cr->num_connected -1;
@@ -145,11 +157,12 @@ void creg_unregister(CLIENT_REGISTRY *cr, int fd)
     }
     if(cr->num_connected == 0)
     {
-        debug("num_connected is now 0");
+        debug("num_connected is now 0 V() called");
         V(&cr->blocking);
     }
     if(found == 0)
         debug("did not find fd");
+    debug("unregister ended");
 
     V(&cr->mutex);
 }
@@ -164,9 +177,23 @@ void creg_unregister(CLIENT_REGISTRY *cr, int fd)
 void creg_wait_for_empty(CLIENT_REGISTRY *cr)
 {
     debug("wait for empty called");
-    P(&cr->blocking);
+    P(&cr->mutex);
+    int total = cr->num_connected;
 
-    debug("wait for empty ended");
+    if(total != 0)
+    {
+        V(&cr->mutex);
+        debug("inside block statement");
+        P(&cr->blocking);
+    }
+    else
+        V(&cr->mutex);
+
+    //else if(total != 0)
+    //{
+
+    //}
+   // debug("wait for empty ended");
 }
 
 /*
@@ -177,19 +204,23 @@ void creg_wait_for_empty(CLIENT_REGISTRY *cr)
 void creg_shutdown_all(CLIENT_REGISTRY *cr)
 {
     debug("shutdown all called");
+   // creg_fini(cr);
     NODE *temp = cr->registry;
     while(temp != NULL)
     {
+        debug("shut down loop");
+        NODE *next = temp->next;
         int sockfd = *(temp->fd);
-        creg_unregister(cr,sockfd);
-        /*
+        debug("file dis to shutdown = %d",sockfd);
+        //creg_unregister(cr,sockfd);
         int shutdown_result = shutdown(sockfd,SHUT_RD);
         if(shutdown_result == -1)
         {
             fprintf(stderr, "%s\n","Error in shutdown()" );
+            debug("error in shutdown()");
         }
-        */
-        temp = cr->registry;
+        temp = next;
     }
     //V(cr->blocking);
+    debug("exited shutdown all");
 }

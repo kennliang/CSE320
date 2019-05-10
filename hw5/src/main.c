@@ -78,57 +78,12 @@ void terminate_handler()
 }
 void sig_pipe_ignore()
 {
-  debug("sig_pipe executed");
+  //debug("sig_pipe executed");
   return;
 }
 
 int main(int argc, char* argv[]){
-/*
-  for(int i = 0 ; i < 200; i++)
-    debug("random num = %d",rand_func(10));
-    */
 
-  /*for(int i = 0; default_maze[i] != NULL; i++)
-  {
-    debug("%s",default_maze[i]);
-  }*/
-
-/*
-    client_registry = creg_init();
-    pthread_t tid[10];
-    int max_thread = 2;
-
-     for(int i = 0; i < max_thread; i++)
-     {
-        Pthread_create(&tid[i],NULL,testing_func,NULL);
-     }
-
-     for(int i = 0; i < max_thread; i++)
-     {
-        Pthread_join(tid[i],NULL);
-     }
-
-     creg_fini(client_registry);
-
-     int total = client_registry->num_connected;
-     printf("\n\n\n");
-      Pthread_create(&tid[2],NULL,test2,NULL);
-     debug("total = %d",total);
-
-     for(int i = 0; i < total/2;i++)
-     {
-        creg_unregister(client_registry,i);
-        creg_unregister(client_registry,i);
-     }
-
-     creg_shutdown_all(client_registry);
-       creg_fini(client_registry);
-
-       while(1)
-       {
-        ;
-       }
-       */
 
 
     // Option processing should be performed here.
@@ -138,6 +93,7 @@ int main(int argc, char* argv[]){
     int port = 0;
     int port_entered = 0;
     char *map_template = NULL;
+
 
     extern char *optarg;
     int c;
@@ -167,7 +123,7 @@ int main(int argc, char* argv[]){
       exit(1);
     }
 
-    char **input_template = malloc(250 * sizeof(char*));
+    char **input_template;
     if(map_template != NULL)
     {
       FILE *fp = fopen(map_template,"r");
@@ -176,6 +132,7 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "%s\n", "ERROR OPENING TEMPLATE FILE");
         exit(1);
       }
+      input_template = malloc(1000 * sizeof(char*));
 
       int buf_size = 250;
       char *line = malloc(buf_size *sizeof(char));
@@ -187,13 +144,19 @@ int main(int argc, char* argv[]){
         //debug("getLine = %d",getLine);
         //debug("strlen = %ld",strlen(line));
         //debug("the character %c",*(line+30));
+        char *newline;
         if(*(line+getLine-1) == '\n')
         {
-          //debug("executed");
+          debug("executed");
           char *temp = line+getLine-1;
           *temp = '\0';
+          newline = malloc(getLine *sizeof(char));
         }
-        char *newline = malloc(getLine-1 *sizeof(char));
+        //char *newline = malloc(getLine *sizeof(char));
+        else
+        {
+          newline = malloc(getLine + 1 *sizeof(char));
+        }
         strcpy(newline,line);
         debug("%s",line);
         //debug("%p",*temp_input);
@@ -201,23 +164,40 @@ int main(int argc, char* argv[]){
         temp_input++;
       }
       *temp_input = NULL;
+      fclose(fp);
+      free(line);
+      /*
       debug("");
-      for(int i = 0; *input_template != NULL; i++)
+      char **input_template2 = input_template;
+      for(int i = 0; *input_template2 != NULL; i++)
       {
-        debug("%s",*input_template);
-        input_template++;
+        debug("%s",*input_template2);
+        debug("%ld",strlen(*input_template2));
+        input_template2++;
       }
+      */
 
     }
 
-
     // Perform required initializations of the client_registry,
     // maze, and player modules.
-    client_registry = creg_init();
+    creg_init();
     if(map_template == NULL)
       maze_init(default_maze);
     else
+    {
       maze_init(input_template);
+
+      char **input_template2 = input_template;
+      while(*input_template2 != NULL)
+      {
+        debug("free executed");
+        free(*input_template2);
+        input_template2++;
+      }
+      free(input_template);
+     // close(fp);
+    }
     player_init();
     debug_show_maze = 1;  // Show the maze after each packet.
 
@@ -258,6 +238,7 @@ int main(int argc, char* argv[]){
 
     listenfd = Open_listenfd(port);
 
+   // int count = 0;
     while(1)
     {
 
@@ -265,7 +246,9 @@ int main(int argc, char* argv[]){
       connfd = Malloc(sizeof(int));
       *connfd = Accept(listenfd,(SA *) &clientaddr,&clientlen);
       debug("accepted socket");
+      //debug("thread is =%ld",tid);
       Pthread_create(&tid,NULL,mzw_client_service,connfd);
+     // count++;
     }
 
 
@@ -273,7 +256,7 @@ int main(int argc, char* argv[]){
     fprintf(stderr, "You have to finish implementing main() "
 	    "before the MazeWar server will function.\n");
 
-    terminate(1);
+   // terminate(1);
 
 }
 

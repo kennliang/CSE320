@@ -4,7 +4,7 @@
 #include "debug.h"
 #include "protocol.h"
 #include "player.h"
-//#include "client_registry.h"
+#include "client_registry.h"
 /*
  * Thread function for the thread that handles a particular client.
  *
@@ -29,12 +29,15 @@ int debug_show_maze = 0;
 
 void *mzw_client_service(void *arg)
 {
+
     int fd = *(int *)arg;
     debug("fd = %d",fd);
     free(arg);
-
+    debug("thread is = %ld",pthread_self());
     Pthread_detach(pthread_self());
+    debug("thread is = %ld",pthread_self());
     creg_register(client_registry,fd);
+    //creg_fini(client_registry);
     MZW_PACKET *pkt = malloc(sizeof(MZW_PACKET));
     debug("size of ptr = %ld",sizeof(void *));
     void **data = malloc(sizeof(void *));
@@ -48,15 +51,40 @@ void *mzw_client_service(void *arg)
         debug("result after proto call = %d",result);
         if(result == 1)
         {
-            //int close_result = close(fd);
-            //if(close_result == -1)
-                //debug("closed returned -1");
-            debug("before call to logout");
-            player_logout(player);
+            int close_result = close(fd);
+            if(close_result == -1)
+                debug("closed returned -1");
+            if(login_success == 1)
+            {
+                debug("log out called in server");
+                player_logout(player);
+                //free(player);
+            }
+
+            debug("before call to logout = %d",fd);
+            //player_logout(player);
             debug("after call to logout");
-            creg_fini(client_registry);
+            //free(*data);
+            free(data);
+            free(pkt);
+
+
+            //remember to remove this
+            //creg_fini(client_registry);
             creg_unregister(client_registry,fd);
+            debug("Executed");
+            //creg_fini(client_registry);
             break;
+        }
+        if(result == 3)
+        {
+            debug("intrrupted by signal@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            player_check_for_laser_hit(player);
+            //player_reset(player);
+            //player_invalidate_view(player);
+            //player_update_view(player);
+            //break;
+            continue;
         }
         int pkt_type = pkt->type;
         switch(pkt_type)
@@ -66,16 +94,17 @@ void *mzw_client_service(void *arg)
                 if(login_success == 0)
                 {
                     login_success = 1;
+                    debug("name = %s",*(char**)data);
                     debug("param1 = %d data = %s",pkt->param1,*(char **)data);
-                    int name_size = strlen(*(char **)data) +1;
-                    char *name = malloc(name_size);
-                    strcpy(name,*(char**)data);
-                    debug("name_size = %d name = %s",name_size,name);
+                    //int name_size = strlen(*(char **)data) +1;
+                    //char *name = malloc(name_size);
+                    //strcpy(name,*(char**)data);
+                    //debug("name_size = %d name = %s",name_size,name);
                     player = player_login(fd,pkt->param1,*data);
                     debug("%p",player);
                     if(player == NULL)
                     {
-                         pkt->type = MZW_INUSE_PKT;
+                        pkt->type = MZW_INUSE_PKT;
                         pkt->size = 0;
                         proto_send_packet(fd,pkt,data);
                     }
@@ -87,6 +116,7 @@ void *mzw_client_service(void *arg)
                         player_reset(player);
                     }
                 }
+                free(*data);
                 break;
             case MZW_MOVE_PKT:
                 debug("move packet");
@@ -121,7 +151,18 @@ void *mzw_client_service(void *arg)
                 debug("send packet");
                 if(login_success == 1)
                 {
+                   // creg_fini(client_registry);
+                    /*
+                    char *str = "terminate";
+                    if((strcmp(str,*(char **)data) == 0))
+                    {
+                        debug("terminate the server by client");
+                        debug("get pid = %d",getpid());
+                        kill(getpid(),SIGHUP);
+                    }
+                    */
                     player_send_chat(player,*(char **)data,strlen(*(char **)data));
+                    free(*data);
                 }
                 break;
         }
