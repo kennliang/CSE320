@@ -109,7 +109,7 @@ int main(int argc, char* argv[]){
           map_template = optarg;
           break;
         case '?':
-          fprintf(stderr, "%s\n", "Error with processing arguments.(invalid flags)");
+          //fprintf(stderr, "%s\n", "Error with processing arguments.(invalid flags)");
           //terminate(EXIT_FAILURE);
           exit(1);
           break;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[]){
 
     if(port_entered == 0)
     {
-      fprintf(stderr, "%s\n","A port number was not specify" );
+      //fprintf(stderr, "%s\n","A port number was not specify" );
       //terminate(EXIT_FAILURE);
       exit(1);
     }
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]){
       FILE *fp = fopen(map_template,"r");
       if(fp == NULL)
       {
-        fprintf(stderr, "%s\n", "ERROR OPENING TEMPLATE FILE");
+        //fprintf(stderr, "%s\n", "ERROR OPENING TEMPLATE FILE");
         exit(1);
       }
       input_template = malloc(1000 * sizeof(char*));
@@ -224,7 +224,7 @@ int main(int argc, char* argv[]){
     int sig_result2 = sigaction(SIGPIPE,&act2,NULL);
     if(sig_result == -1 || sig_result2 == -1)
     {
-      fprintf(stderr, "%s\n","sigaction function failed" );
+      //fprintf(stderr, "%s\n","sigaction function failed" );
       //terminate(EXIT_FAILURE);
       exit(1);
     }
@@ -253,8 +253,8 @@ int main(int argc, char* argv[]){
 
 
 
-    fprintf(stderr, "You have to finish implementing main() "
-	    "before the MazeWar server will function.\n");
+   // fprintf(stderr, "You have to finish implementing main() "
+	  //  "before the MazeWar server will function.\n");
 
    // terminate(1);
 

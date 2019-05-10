@@ -216,7 +216,7 @@ void creg_shutdown_all(CLIENT_REGISTRY *cr)
         int shutdown_result = shutdown(sockfd,SHUT_RD);
         if(shutdown_result == -1)
         {
-            fprintf(stderr, "%s\n","Error in shutdown()" );
+           // fprintf(stderr, "%s\n","Error in shutdown()" );
             debug("error in shutdown()");
         }
         temp = next;

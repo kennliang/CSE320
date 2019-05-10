@@ -167,11 +167,12 @@ void *mzw_client_service(void *arg)
                 }
                 break;
         }
-
+/*
         if(debug_show_maze == 1)
         {
             show_maze();
         }
+        */
 
     }
 

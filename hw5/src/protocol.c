@@ -46,7 +46,7 @@ int proto_send_packet(int fd, MZW_PACKET *pkt, void *data)
     }
     if(size_packet != 0)
     {
-        fprintf(stderr, "%s\n", "incomplete in sending header");
+      //  fprintf(stderr, "%s\n", "incomplete in sending header");
         return 1;
     }
 
@@ -57,14 +57,14 @@ int proto_send_packet(int fd, MZW_PACKET *pkt, void *data)
           //  debug("result inside loop = %d",result);
             if( result == -1)
             {
-                fprintf(stderr, "%s\n","write returned -1" );
+                //fprintf(stderr, "%s\n","write returned -1" );
                 return 1;
             }
             payload_size = payload_size - result;
         }
         if(payload_size != 0)
         {
-            fprintf(stderr, "%s\n", "incomete in sending payload");
+           // fprintf(stderr, "%s\n", "incomete in sending payload");
             return 1;
         }
     }
@@ -125,7 +125,7 @@ int proto_recv_packet(int fd, MZW_PACKET *pkt, void **datap)
                 debug("EISDIR");
             else
                 debug("unknown errno");
-            fprintf(stderr, "%s\n","read returned -1" );
+            //fprintf(stderr, "%s\n","read returned -1" );
             return 1;
         }
         size_packet = size_packet - result;
@@ -160,14 +160,14 @@ int proto_recv_packet(int fd, MZW_PACKET *pkt, void **datap)
             //debug("result inside loop = %d",result);
             if( result == -1)
             {
-                fprintf(stderr, "%s\n","read returned -1" );
+               // fprintf(stderr, "%s\n","read returned -1" );
                 return 1;
             }
             payload_size = payload_size - result;
         }
         if(payload_size != 0)
         {
-            fprintf(stderr, "%s\n", "incomplete recieving payload");
+           // fprintf(stderr, "%s\n", "incomplete recieving payload");
             return 1;
         }
         *(char *)(*datap+pkt->size) = '\0';
