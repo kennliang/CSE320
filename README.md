@@ -1,4 +1,4 @@
-# CSE 320 Homeworks
+# System Fundamentals Homeworks
 
 All Homeworks Done in C
 
